@@ -128,6 +128,7 @@ class RetrievalPipeline:
         tenant_id: str | None = None,
         mode: str = "hybrid",
         fail_closed: bool = False,
+        skip_audit: bool = False,
     ) -> tuple[EvidencePackage, RetrievalTrace]:
         # Security hardening: Configurable input bounding against DoS & Injection
         safe_query = (query_text or "").strip()[:self._max_query_length]
@@ -281,7 +282,7 @@ class RetrievalPipeline:
             warnings=warnings,
         )
 
-        if self._audit_logger is not None:
+        if self._audit_logger is not None and not skip_audit:
             self._audit_logger.log_retrieval(
                 query_text=query_text,
                 top_k=top_k,
@@ -289,6 +290,7 @@ class RetrievalPipeline:
                 result_count=len(reranked),
                 latency_ms=latency_ms,
                 trace_id=trace_id,
+                tenant_id=safe_tenant,
                 details=self._trace_to_dict(trace),
             )
         return package, trace
@@ -308,6 +310,7 @@ class RetrievalPipeline:
             source_type=source_type,
             tenant_id=tenant_id,
             mode=mode,
+            skip_audit=True,
         )
         return {
             "query_text": query_text,

@@ -109,6 +109,7 @@ def test_mcp_server_forwards_mode_parameter(monkeypatch) -> None:
     fastmcp_module = ModuleType("mcp.server.fastmcp")
     fastmcp_module.FastMCP = _FakeFastMCP
     monkeypatch.setitem(__import__("sys").modules, "mcp.server.fastmcp", fastmcp_module)
+    monkeypatch.setenv("KF_DEFAULT_TENANT", "default")
 
     server = create_mcp_server(_FakeTools())
     tools = server.tools
@@ -121,5 +122,33 @@ def test_mcp_server_forwards_mode_parameter(monkeypatch) -> None:
 
     res_explain = tools["explain_retrieval"](query_text="test", mode="vector")
     assert res_explain["kwargs"]["mode"] == "vector"
+
+
+def test_mcp_server_fails_closed_when_tenant_missing(monkeypatch) -> None:
+    import pytest
+
+    fastmcp_module = ModuleType("mcp.server.fastmcp")
+    fastmcp_module.FastMCP = _FakeFastMCP
+    monkeypatch.setitem(__import__("sys").modules, "mcp.server.fastmcp", fastmcp_module)
+    monkeypatch.delenv("KF_DEFAULT_TENANT", raising=False)
+
+    server = create_mcp_server(_FakeTools())
+    tools = server.tools
+
+    with pytest.raises(ValueError, match="tenant_id is required"):
+        tools["retrieve_evidence"](query_text="test")
+
+    with pytest.raises(ValueError, match="tenant_id is required"):
+        tools["list_sources"]()
+
+    with pytest.raises(ValueError, match="tenant_id is required"):
+        tools["get_document"](document_id=1)
+
+    with pytest.raises(ValueError, match="tenant_id is required"):
+        tools["get_index_status"]()
+
+    # health_check does NOT require tenant
+    health = tools["health_check"]()
+    assert health["status"] == "ok"
 
 

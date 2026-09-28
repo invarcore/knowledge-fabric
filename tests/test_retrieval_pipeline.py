@@ -65,22 +65,27 @@ def test_pipeline_retrieves_and_logs() -> None:
         audit_logger=audit,  # type: ignore[arg-type]
     )
 
-    package, trace = pipeline.retrieve_with_trace(query_text="test query", top_k=5, trace_id="trace-1")
+    package, trace = pipeline.retrieve_with_trace(
+        query_text="test query", top_k=5, trace_id="trace-1", tenant_id="tenant-alpha"
+    )
 
     assert package.query_text == "test query"
     assert len(package.items) == 2
     assert trace.fused_count == 2
     assert len(audit.calls) == 1
     assert audit.calls[0]["trace_id"] == "trace-1"
+    assert audit.calls[0]["tenant_id"] == "tenant-alpha"
 
 
 def test_pipeline_explain_retrieval() -> None:
+    audit = _FakeAuditLogger()
     pipeline = RetrievalPipeline(
         retrieval_store=_FakeStore(),  # type: ignore[arg-type]
         embedding_provider=MockEmbeddingProvider(_dimension=8),
+        audit_logger=audit,  # type: ignore[arg-type]
     )
 
-    details = pipeline.explain_retrieval(query_text="security", top_k=3)
+    details = pipeline.explain_retrieval(query_text="security", top_k=3, tenant_id="tenant-beta")
 
     assert details["query_text"] == "security"
     assert details["top_k"] == 3
@@ -88,6 +93,7 @@ def test_pipeline_explain_retrieval() -> None:
     assert set(details["sources"]) == {"lexical", "vector"}
     assert details["legs"]["lexical"]["status"] == "ok"
     assert details["legs"]["vector"]["status"] == "ok"
+    assert len(audit.calls) == 0  # explain_retrieval must skip audit logging
 
 
 def test_pipeline_lexical_only_mode_bypasses_embeddings() -> None:

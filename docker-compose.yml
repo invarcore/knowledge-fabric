@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: kf_password
       POSTGRES_DB: knowledge_fabric
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kf_user -d knowledge_fabric"]
       interval: 5s
@@ -19,6 +19,18 @@ services:
     volumes:
       - kf_pgdata:/var/lib/postgresql/data
       - ./db/schema:/docker-entrypoint-initdb.d:ro
+
+  tika:
+    image: apache/tika:2.9.2.1
+    container_name: kf-tika
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9998:9998"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9998/tika || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   knowledge-mcp:
     build:
@@ -29,12 +41,15 @@ services:
     entrypoint: []
     command: fastmcp run src/knowledge_fabric/mcp/server.py --transport sse --host 0.0.0.0 --port 8000
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql://kf_user:kf_password@postgres:5432/knowledge_fabric
+      TIKA_ENDPOINT: http://tika:9998
     depends_on:
       postgres:
         condition: service_healthy
+      tika:
+        condition: service_started
 
   smoke-test:
     build:

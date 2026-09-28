@@ -210,7 +210,7 @@ SELECT enable_tenant_rls();
 ```
 PostgreSQL kernel rejects any access that does not set session variable `app.tenant_id`:
 ```sql
-SET LOCAL app.tenant_id = 'healthcare-corp-a';
+SELECT set_config('app.tenant_id', 'healthcare-corp-a', true);
 ```
 Even if application code contains a bug or omission, cross-tenant data leakage is physically impossible.
 

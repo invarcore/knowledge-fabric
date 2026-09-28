@@ -87,3 +87,20 @@ def check_embedding_dimension(
     except Exception as exc:
         # If relation doesn't exist or table not created yet, log and pass
         logger.debug("Dimension check skipped (table or extension not yet created): %s", exc)
+
+
+def reembed_chunks(
+    connection_factory: Any,
+    embedding_provider: Any,
+    tenant_id: str | None = None,
+    batch_size: int = 50,
+) -> dict[str, Any]:
+    """Helper to re-embed chunks across database using the specified provider."""
+    from knowledge_fabric.db.repository import KnowledgeRepository
+
+    repo = KnowledgeRepository(connection_factory=connection_factory)
+    return repo.reembed_chunks(
+        embedding_provider=embedding_provider,
+        tenant_id=tenant_id,
+        batch_size=batch_size,
+    )

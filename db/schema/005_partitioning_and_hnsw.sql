@@ -40,6 +40,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Apply HNSW upgrade on migration execution
+SELECT upgrade_to_hnsw_index();
+
 -- ── Reference Partitioning Pattern (for 10M+ multi-tenant clusters) ─────────
 -- To convert to partitioned storage for massive scale:
 --

@@ -17,7 +17,7 @@ Knowledge Fabric acts as the *librarian* of the AI assistant ecosystem. It provi
 4. **Tenant Isolation:** Every primary data and operational table (`documents`, `chunks`, `retrieval_runs`, `audit_events`) carries a `tenant_id` column with composite indexing (`idx_documents_tenant_source`).
 5. **Dual-Mode Security Isolation:**
    - **Mode 1 (Application Filtering — Always On):** All queries explicitly include `WHERE tenant_id = %s`.
-   - **Mode 2 (PostgreSQL Row-Level Security — Opt-in):** Database-level security policies (`tenant_isolation_*`) restrict reads and writes using session variable `app.tenant_id` via `SET LOCAL app.tenant_id = %s`.
+   - **Mode 2 (PostgreSQL Row-Level Security — Opt-in):** Database-level security policies (`tenant_isolation_*`) restrict reads and writes using session variable `app.tenant_id` via `SELECT set_config('app.tenant_id', %s, true)`.
 6. **Vector Dimension Guard:** A strict dimension assertion (`DimensionGuard`) verifies that the active embedding provider dimension matches the PostgreSQL `VECTOR(N)` column specification before any vector search executes.
 
 ---

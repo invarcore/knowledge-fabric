@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-09-28
+
+### Added
+- Extensible `EmbeddingProviderRegistry` supporting custom provider registration via `register(name, factory)` and dynamic lookup.
+- Native `GeminiEmbeddingProvider` implementing Google Gemini `text-embedding-004` (768d) with zero extra dependencies via standard library HTTP.
+- Local `SentenceTransformerEmbeddingProvider` supporting Hugging Face models (`all-MiniLM-L6-v2`, `bge-base-en-v1.5`, etc.).
+- Cryptographic evidence package HMAC signing (`package_signature` and `compute_package_signature`) for tamper-evident provenance.
+- Apache Tika container service and healthchecks in `docker-compose.yml`.
+- Non-superuser least-privilege role migration `006_application_role.sql` (`kf_app`) and `FORCE ROW LEVEL SECURITY` on tables.
+- Standalone `reembed_chunks` helper in `knowledge_fabric.db.dimension_guard` for database vector migrations.
+
+### Changed
+- Fixed PostgreSQL RLS parameterization by replacing `SET LOCAL app.tenant_id = %s` with `SELECT set_config('app.tenant_id', %s, true)`.
+- Enforced fail-closed tenant scoping in MCP server (`_require_tenant`) preventing unscoped cross-tenant data leaks.
+- Fixed audit logging permission errors under RLS by scoping `retrieval_runs` and `audit_events` with `tenant_id`.
+- Added `skip_audit=True` option to `RetrievalPipeline.retrieve_with_trace` so `explain_retrieval` runs without audit side-effects.
+- Normalized Tika endpoint URL handling to prevent duplicate `/tika/tika` paths.
+- Bound all Docker Compose ports to loopback (`127.0.0.1`) to eliminate public interface exposure.
+
 ## [0.1.1] - 2026-09-06
 
 ### Added

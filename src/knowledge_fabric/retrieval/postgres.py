@@ -240,7 +240,7 @@ class PostgresRetrievalStore:
             # Mode 2 (RLS): set session variable so Postgres RLS policies fire.
             # This is a no-op if RLS is not enabled on the table.
             if tenant_id is not None:
-                cursor.execute("SET LOCAL app.tenant_id = %s", [tenant_id])
+                cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [tenant_id])
             cursor.execute(sql, params)
             rows = cursor.fetchall()
         return rows

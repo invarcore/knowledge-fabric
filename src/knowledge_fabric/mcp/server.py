@@ -52,6 +52,15 @@ def build_tools_from_settings(settings: Settings) -> KnowledgeFabricMCPTools:
 
 
 
+def _require_tenant(tenant_id: str | None) -> str:
+    effective_tenant = validate_tenant_id(tenant_id or os.environ.get("KF_DEFAULT_TENANT") or None)
+    if not effective_tenant:
+        raise ValueError(
+            "tenant_id is required; specify tenant_id parameter or configure KF_DEFAULT_TENANT"
+        )
+    return effective_tenant
+
+
 def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
     """Create MCP server with retrieval tool registration."""
     try:
@@ -82,7 +91,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         Use source_type as a filter in retrieve_evidence to scope retrieval.
         Scoped to tenant_id when provided.
         """
-        effective_tenant = validate_tenant_id(tenant_id or os.environ.get("KF_DEFAULT_TENANT") or None)
+        effective_tenant = _require_tenant(tenant_id)
         return tools.list_sources(tenant_id=effective_tenant)
 
     @server.tool(name="retrieve_evidence")
@@ -105,9 +114,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         - mode: Retrieval strategy: 'hybrid' (lexical + vector RRF), 'lexical' (full-text only),
           or 'vector' (semantic embeddings only).
         """
-        # tenant_id from the call argument takes priority;
-        # fall back to server-level default from environment.
-        effective_tenant = validate_tenant_id(tenant_id or os.environ.get("KF_DEFAULT_TENANT") or None)
+        effective_tenant = _require_tenant(tenant_id)
         return tools.retrieve_evidence(
             query_text=query_text,
             top_k=top_k,
@@ -123,7 +130,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         source_uri: str | None = None,
         tenant_id: str | None = None,
     ) -> dict[str, object] | None:
-        effective_tenant = validate_tenant_id(tenant_id or os.environ.get("KF_DEFAULT_TENANT") or None)
+        effective_tenant = _require_tenant(tenant_id)
         return tools.get_document(
             document_id=document_id,
             source_uri=source_uri,
@@ -143,7 +150,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         Explains candidate counts, per-leg latencies, fusion scores, and degradation
         status without persisting audit logs.
         """
-        effective_tenant = validate_tenant_id(tenant_id or os.environ.get("KF_DEFAULT_TENANT") or None)
+        effective_tenant = _require_tenant(tenant_id)
         return tools.explain_retrieval(
             query_text=query_text,
             top_k=top_k,
@@ -160,7 +167,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
 
         Scoped to tenant_id when provided.
         """
-        effective_tenant = validate_tenant_id(tenant_id or os.environ.get("KF_DEFAULT_TENANT") or None)
+        effective_tenant = _require_tenant(tenant_id)
         return tools.get_index_status(tenant_id=effective_tenant)
 
     @server.tool(name="get_evidence")
@@ -169,7 +176,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         tenant_id: str | None = None,
     ) -> dict[str, object] | None:
         """Fetch a specific evidence chunk by its integer chunk ID, scoped to tenant."""
-        effective_tenant = validate_tenant_id(tenant_id or os.environ.get("KF_DEFAULT_TENANT") or None)
+        effective_tenant = _require_tenant(tenant_id)
         return tools.get_evidence(chunk_id=chunk_id, tenant_id=effective_tenant)
 
     @server.tool(name="check_consistency")
@@ -177,7 +184,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         tenant_id: str | None = None,
     ) -> dict[str, object]:
         """Run database consistency audits (detecting orphaned chunks, empty documents, null tenants)."""
-        effective_tenant = validate_tenant_id(tenant_id or os.environ.get("KF_DEFAULT_TENANT") or None)
+        effective_tenant = _require_tenant(tenant_id)
         return tools.check_consistency(tenant_id=effective_tenant)
 
     return server

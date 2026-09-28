@@ -167,3 +167,17 @@ def test_ingestion_record_and_status_models() -> None:
     assert record.chunks_count == 15
     assert record.error_message is None
 
+
+def test_tika_client_endpoint_normalization() -> None:
+    client1 = TikaClient(endpoint="http://localhost:9998")
+    assert client1._endpoint == "http://localhost:9998/tika"
+
+    client2 = TikaClient(endpoint="http://localhost:9998/")
+    assert client2._endpoint == "http://localhost:9998/tika"
+
+    client3 = TikaClient(endpoint="http://localhost:9998/tika")
+    assert client3._endpoint == "http://localhost:9998/tika"
+
+    client4 = TikaClient(endpoint="http://localhost:9998/tika/")
+    assert client4._endpoint == "http://localhost:9998/tika"
+

@@ -23,24 +23,28 @@ class AuditLogger:
         result_count: int,
         latency_ms: int,
         trace_id: str | None = None,
+        tenant_id: str | None = None,
         details: dict[str, object] | None = None,
     ) -> None:
+        effective_tenant = tenant_id or "default"
         details_payload = details or {}
         connection = self._connection_factory()
         with connection.cursor() as cursor:
+            if tenant_id is not None:
+                cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [tenant_id])
             cursor.execute(
                 """
-                INSERT INTO retrieval_runs (query_text, top_k, retrieval_mode, filters, latency_ms, result_count)
-                VALUES (%s, %s, %s, %s::jsonb, %s, %s)
+                INSERT INTO retrieval_runs (tenant_id, query_text, top_k, retrieval_mode, filters, latency_ms, result_count)
+                VALUES (%s, %s, %s, %s, %s::jsonb, %s, %s)
                 """,
-                [query_text, top_k, retrieval_mode, "{}", latency_ms, result_count],
+                [effective_tenant, query_text, top_k, retrieval_mode, "{}", latency_ms, result_count],
             )
             cursor.execute(
                 """
-                INSERT INTO audit_events (event_type, actor, trace_id, event_payload)
-                VALUES (%s, %s, %s, %s::jsonb)
+                INSERT INTO audit_events (tenant_id, event_type, actor, trace_id, event_payload)
+                VALUES (%s, %s, %s, %s, %s::jsonb)
                 """,
-                ["retrieval.executed", "system", trace_id, _json_dump(details_payload)],
+                [effective_tenant, "retrieval.executed", "system", trace_id, _json_dump(details_payload)],
             )
             if hasattr(connection, "commit"):
                 connection.commit()

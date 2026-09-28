@@ -53,31 +53,35 @@ CREATE INDEX IF NOT EXISTS idx_documents_tenant_source
 -- cannot read another tenant's data as long as the session variable is set.
 --
 -- Usage after enabling:
---   SET LOCAL app.tenant_id = 'your-tenant-id';   -- before each query
+--   SELECT set_config('app.tenant_id', 'your-tenant-id', true);   -- before each query
 --   (The application does this automatically; see postgres.py)
 
 CREATE OR REPLACE FUNCTION enable_tenant_rls() RETURNS void AS $$
 BEGIN
   -- Documents
   ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE documents FORCE ROW LEVEL SECURITY;
   DROP POLICY IF EXISTS tenant_isolation_documents ON documents;
   CREATE POLICY tenant_isolation_documents ON documents
     USING (tenant_id = current_setting('app.tenant_id', true));
 
   -- Chunks
   ALTER TABLE chunks ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE chunks FORCE ROW LEVEL SECURITY;
   DROP POLICY IF EXISTS tenant_isolation_chunks ON chunks;
   CREATE POLICY tenant_isolation_chunks ON chunks
     USING (tenant_id = current_setting('app.tenant_id', true));
 
   -- Retrieval runs
   ALTER TABLE retrieval_runs ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE retrieval_runs FORCE ROW LEVEL SECURITY;
   DROP POLICY IF EXISTS tenant_isolation_retrieval_runs ON retrieval_runs;
   CREATE POLICY tenant_isolation_retrieval_runs ON retrieval_runs
     USING (tenant_id = current_setting('app.tenant_id', true));
 
   -- Audit events
   ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE audit_events FORCE ROW LEVEL SECURITY;
   DROP POLICY IF EXISTS tenant_isolation_audit_events ON audit_events;
   CREATE POLICY tenant_isolation_audit_events ON audit_events
     USING (tenant_id = current_setting('app.tenant_id', true));

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import os
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
@@ -24,7 +26,6 @@ def compute_chunk_hash(document_uri: str, snippet: str) -> str:
     return hashlib.sha256(canonical_payload).hexdigest()
 
 
-
 def compute_package_digest(items: list[EvidenceItem]) -> str:
     """Compute composite SHA-256 digest over ordered chunk provenance hashes.
 
@@ -37,6 +38,31 @@ def compute_package_digest(items: list[EvidenceItem]) -> str:
     return hashlib.sha256(combined).hexdigest()
 
 
+def compute_package_signature(
+    retrieval_id: str,
+    tenant_id: str | None,
+    query_fingerprint: str,
+    provenance_digest: str,
+    timestamp_utc: str,
+    key: str | bytes | None = None,
+) -> str:
+    """Compute HMAC-SHA256 signature for evidence package provenance.
+
+    Formula: HMAC-SHA256(key, f"{retrieval_id}:{tenant_id or ''}:{query_fingerprint}:{provenance_digest}:{timestamp_utc}")
+    Returns empty string if key is not configured.
+    """
+    secret = key if key is not None else os.environ.get("KF_EVIDENCE_HMAC_KEY", "")
+    if not secret:
+        return ""
+    if isinstance(secret, str):
+        secret_bytes = secret.encode("utf-8")
+    else:
+        secret_bytes = secret
+    tenant = tenant_id or ""
+    msg = f"{retrieval_id}:{tenant}:{query_fingerprint}:{provenance_digest}:{timestamp_utc}".encode("utf-8")
+    return hmac.new(secret_bytes, msg, hashlib.sha256).hexdigest()
+
+
 def compute_query_fingerprint(
     query_text: str,
     tenant_id: str | None = None,
@@ -46,7 +72,7 @@ def compute_query_fingerprint(
 
     Formula: SHA-256(tenant_id + ":" + query_text + ":" + mode)
     """
-    tenant = tenant_id or "default"
+    tenant = tenant_id if tenant_id is not None else ""
     raw = f"{tenant}:{query_text}:{mode}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
@@ -85,7 +111,8 @@ class EvidencePackage:
     provenance_digest: str = ""
     query_fingerprint: str = ""
     retrieval_id: str = field(default_factory=lambda: uuid.uuid4().hex)
-    tenant_id: str = "default"
+    tenant_id: str | None = None
+    package_signature: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -108,6 +135,7 @@ class EvidencePackage:
             "retrieval_summary": self.retrieval_summary,
             "provenance_digest": self.provenance_digest,
             "query_fingerprint": self.query_fingerprint,
+            "package_signature": self.package_signature,
         }
 
     def format_citations(self, style: str = "markdown") -> str:
@@ -130,6 +158,7 @@ def build_evidence_package(
     tenant_id: str | None = None,
     mode: str = "hybrid",
     retrieval_id: str | None = None,
+    hmac_key: str | bytes | None = None,
 ) -> EvidencePackage:
     items = [
         EvidenceItem(
@@ -154,14 +183,31 @@ def build_evidence_package(
     }
     if summary_extra:
         summary.update(summary_extra)
+
+    pkg_retrieval_id = retrieval_id or uuid.uuid4().hex
+    now = datetime.now(UTC)
+    now_iso = now.isoformat()
+    digest = compute_package_digest(items)
+    fingerprint = compute_query_fingerprint(query_text, tenant_id=tenant_id, mode=mode)
+    signature = compute_package_signature(
+        retrieval_id=pkg_retrieval_id,
+        tenant_id=tenant_id,
+        query_fingerprint=fingerprint,
+        provenance_digest=digest,
+        timestamp_utc=now_iso,
+        key=hmac_key,
+    )
+
     return EvidencePackage(
         query_text=query_text,
+        generated_at=now,
         items=items,
         retrieval_summary=summary,
-        provenance_digest=compute_package_digest(items),
-        query_fingerprint=compute_query_fingerprint(query_text, tenant_id=tenant_id, mode=mode),
-        retrieval_id=retrieval_id or uuid.uuid4().hex,
-        tenant_id=tenant_id or "default",
+        provenance_digest=digest,
+        query_fingerprint=fingerprint,
+        retrieval_id=pkg_retrieval_id,
+        tenant_id=tenant_id,
+        package_signature=signature,
     )
 
 

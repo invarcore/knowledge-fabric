@@ -113,10 +113,7 @@ class KnowledgeRepository:
         connection = self._connection_factory()
         with connection.cursor() as cursor:
             if effective_tenant is not None:
-                try:
-                    cursor.execute("SET LOCAL app.tenant_id = %s", [effective_tenant])
-                except Exception:
-                    pass
+                cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
 
             if document_id is not None:
                 if effective_tenant is not None:
@@ -150,10 +147,7 @@ class KnowledgeRepository:
 
         connection = self._connection_factory()
         with connection.cursor() as cursor:
-            try:
-                cursor.execute("SET LOCAL app.tenant_id = %s", [effective_tenant])
-            except Exception:
-                pass
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
 
             cursor.execute(
                 "DELETE FROM documents WHERE source_type = %s AND tenant_id = %s",
@@ -177,10 +171,7 @@ class KnowledgeRepository:
 
         connection = self._connection_factory()
         with connection.cursor() as cursor:
-            try:
-                cursor.execute("SET LOCAL app.tenant_id = %s", [effective_tenant])
-            except Exception:
-                pass
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
 
             # Deleting documents cascades to all chunks
             cursor.execute("DELETE FROM documents WHERE tenant_id = %s", [effective_tenant])
@@ -210,10 +201,7 @@ class KnowledgeRepository:
         connection = self._connection_factory()
         with connection.cursor() as cursor:
             if effective_tenant is not None:
-                try:
-                    cursor.execute("SET LOCAL app.tenant_id = %s", [effective_tenant])
-                except Exception:
-                    pass
+                cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
 
             where_clause = "WHERE c.id = %s"
             params: list[Any] = [chunk_id]
@@ -262,10 +250,7 @@ class KnowledgeRepository:
         connection = self._connection_factory()
         with connection.cursor() as cursor:
             if effective_tenant is not None:
-                try:
-                    cursor.execute("SET LOCAL app.tenant_id = %s", [effective_tenant])
-                except Exception:
-                    pass
+                cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
 
             where_doc = ""
             where_chunk = ""
@@ -327,10 +312,7 @@ class KnowledgeRepository:
         connection = self._connection_factory()
         with connection.cursor() as cursor:
             if effective_tenant is not None:
-                try:
-                    cursor.execute("SET LOCAL app.tenant_id = %s", [effective_tenant])
-                except Exception:
-                    pass
+                cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
 
             where_clause = ""
             params: list[Any] = []
@@ -402,10 +384,7 @@ class KnowledgeRepository:
         connection = self._connection_factory()
         with connection.cursor() as cursor:
             if effective_tenant is not None:
-                try:
-                    cursor.execute("SET LOCAL app.tenant_id = %s", [effective_tenant])
-                except Exception:
-                    pass
+                cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
 
             where_clause = ""
             params: list[Any] = []

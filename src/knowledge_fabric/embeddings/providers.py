@@ -8,7 +8,7 @@ import os
 import urllib.request
 import warnings
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Callable, Protocol
 
 
 class EmbeddingProvider(Protocol):
@@ -228,22 +228,197 @@ class CohereEmbeddingProvider:
         return result["embeddings"]["float"]
 
 
+@dataclass(slots=True)
+class GeminiEmbeddingProvider:
+    """Calls the Google Gemini embeddings API.
+
+    Prerequisites:
+        Set GEMINI_API_KEY (or GOOGLE_API_KEY).
+        Get a key from https://aistudio.google.com/apikey
+
+    Default model:
+        text-embedding-004 (768 dimensions)
+
+    Environment variables:
+        GEMINI_API_KEY / GOOGLE_API_KEY
+        GEMINI_EMBED_MODEL (default: text-embedding-004)
+    """
+
+    _model: str
+    _api_key: str
+    _dimension: int = 768
+
+    @classmethod
+    def from_env(cls) -> GeminiEmbeddingProvider:
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
+        if not api_key:
+            raise OSError("GEMINI_API_KEY or GOOGLE_API_KEY environment variable is required")
+        model = os.environ.get("GEMINI_EMBED_MODEL", "text-embedding-004")
+        dim_by_model: dict[str, int] = {
+            "text-embedding-004": 768,
+            "embedding-001": 768,
+            "gemini-embedding-exp-03-07": 768,
+        }
+        dimension = dim_by_model.get(model, 768)
+        return cls(_model=model, _api_key=api_key, _dimension=dimension)
+
+    @property
+    def dimension(self) -> int:
+        return self._dimension
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        requests_payload = [
+            {
+                "model": f"models/{self._model}",
+                "content": {"parts": [{"text": text}]},
+            }
+            for text in texts
+        ]
+        body = json.dumps({"requests": requests_payload}).encode("utf-8")
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/{self._model}:batchEmbedContents"
+            f"?key={self._api_key}"
+        )
+        request = urllib.request.Request(
+            url,
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        return [item["values"] for item in result["embeddings"]]
+
+
+@dataclass
+class SentenceTransformerEmbeddingProvider:
+    """Local SentenceTransformer embedding provider via Hugging Face.
+
+    Prerequisites:
+        pip install sentence-transformers
+
+    Recommended models:
+        all-MiniLM-L6-v2       384d, fast, lightweight
+        BAAI/bge-small-en-v1.5 384d, high quality
+        BAAI/bge-base-en-v1.5  768d, enterprise quality
+
+    Environment variables:
+        SENTENCE_TRANSFORMER_MODEL  default: all-MiniLM-L6-v2
+    """
+
+    _model_name: str
+    _dimension: int
+    _model: Any = None
+
+    @classmethod
+    def from_env(cls) -> SentenceTransformerEmbeddingProvider:
+        model_name = os.environ.get("SENTENCE_TRANSFORMER_MODEL", "all-MiniLM-L6-v2")
+        dim_by_model: dict[str, int] = {
+            "all-MiniLM-L6-v2": 384,
+            "sentence-transformers/all-MiniLM-L6-v2": 384,
+            "all-mpnet-base-v2": 768,
+            "sentence-transformers/all-mpnet-base-v2": 768,
+            "BAAI/bge-small-en-v1.5": 384,
+            "BAAI/bge-base-en-v1.5": 768,
+            "BAAI/bge-large-en-v1.5": 1024,
+        }
+        dimension = dim_by_model.get(model_name, 384)
+        return cls(_model_name=model_name, _dimension=dimension)
+
+    @property
+    def dimension(self) -> int:
+        return self._dimension
+
+    def _ensure_loaded(self) -> Any:
+        if self._model is None:
+            try:
+                from sentence_transformers import SentenceTransformer
+            except (ImportError, ModuleNotFoundError) as exc:
+                raise ImportError(
+                    "sentence-transformers is not installed. "
+                    "Run: pip install sentence-transformers"
+                ) from exc
+            self._model = SentenceTransformer(self._model_name)
+            if hasattr(self._model, "get_sentence_embedding_dimension"):
+                self._dimension = self._model.get_sentence_embedding_dimension()
+        return self._model
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        model = self._ensure_loaded()
+        embeddings = model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
+        return [vec.tolist() for vec in embeddings]
+
+
+class EmbeddingProviderRegistry:
+    """Extensible registry for embedding providers."""
+
+    _factories: dict[str, Callable[..., EmbeddingProvider]] = {}
+
+    @classmethod
+    def register(cls, name: str, factory: Callable[..., EmbeddingProvider]) -> None:
+        """Register an embedding provider factory."""
+        cls._factories[name.lower().strip()] = factory
+
+    @classmethod
+    def get(cls, name: str, **kwargs: Any) -> EmbeddingProvider:
+        """Resolve and instantiate an embedding provider."""
+        key = name.lower().strip()
+        if key not in cls._factories:
+            raise KeyError(
+                f"Unknown embedding provider '{name}'. "
+                f"Available providers: {sorted(cls._factories.keys())}"
+            )
+        factory = cls._factories[key]
+        if callable(factory):
+            try:
+                return factory(**kwargs)
+            except TypeError:
+                return factory()
+        return factory
+
+    @classmethod
+    def list_providers(cls) -> list[str]:
+        return sorted(list(cls._factories.keys()))
+
+    @classmethod
+    def is_registered(cls, name: str) -> bool:
+        return name.lower().strip() in cls._factories
+
+
+EmbeddingProviderRegistry.register(
+    "mock",
+    lambda **kwargs: MockEmbeddingProvider(
+        _dimension=kwargs.get("dimension", 1536),
+        _warn=kwargs.get("warn", True),
+    ),
+)
+EmbeddingProviderRegistry.register("ollama", OllamaEmbeddingProvider.from_env)
+EmbeddingProviderRegistry.register("openai", OpenAIEmbeddingProvider.from_env)
+EmbeddingProviderRegistry.register("cohere", CohereEmbeddingProvider.from_env)
+EmbeddingProviderRegistry.register("gemini", GeminiEmbeddingProvider.from_env)
+EmbeddingProviderRegistry.register("sentence_transformers", SentenceTransformerEmbeddingProvider.from_env)
+EmbeddingProviderRegistry.register("sentence-transformers", SentenceTransformerEmbeddingProvider.from_env)
+EmbeddingProviderRegistry.register("local", SentenceTransformerEmbeddingProvider.from_env)
+
+
 def build_embedding_provider(provider_name: str = "", dimension: int = 768) -> EmbeddingProvider:
     """Factory that reads EMBEDDING_PROVIDER env var and returns the right provider.
 
     EMBEDDING_PROVIDER=mock     → MockEmbeddingProvider (default, dev only — emits warning)
     EMBEDDING_PROVIDER=ollama   → OllamaEmbeddingProvider.from_env()
+    EMBEDDING_PROVIDER=gemini   → GeminiEmbeddingProvider.from_env()
     EMBEDDING_PROVIDER=openai   → OpenAIEmbeddingProvider.from_env()
     EMBEDDING_PROVIDER=cohere   → CohereEmbeddingProvider.from_env()
+    EMBEDDING_PROVIDER=local    → SentenceTransformerEmbeddingProvider.from_env()
 
-    Recommended for local dev:  ollama  (free, no API key, run: ollama pull nomic-embed-text)
-    Recommended for production: cohere (free tier) or openai
+    Recommended for local dev:  ollama (free, local) or local (sentence-transformers)
+    Recommended for production: gemini (free tier/enterprise), cohere, or openai
     """
     name = (provider_name or os.environ.get("EMBEDDING_PROVIDER", "mock")).lower().strip()
-    if name == "ollama":
-        return OllamaEmbeddingProvider.from_env()
-    if name == "openai":
-        return OpenAIEmbeddingProvider.from_env()
-    if name == "cohere":
-        return CohereEmbeddingProvider.from_env()
+    if EmbeddingProviderRegistry.is_registered(name):
+        return EmbeddingProviderRegistry.get(name, dimension=dimension)
     return MockEmbeddingProvider(_dimension=dimension)

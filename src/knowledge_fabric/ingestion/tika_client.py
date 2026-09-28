@@ -12,7 +12,11 @@ class TikaClient:
     """Minimal client for text extraction via Apache Tika."""
 
     def __init__(self, endpoint: str, timeout_seconds: int = 30) -> None:
-        self._endpoint = endpoint.rstrip("/")
+        clean = endpoint.rstrip("/")
+        if clean.endswith("/tika"):
+            self._endpoint = clean
+        else:
+            self._endpoint = f"{clean}/tika"
         self._timeout_seconds = timeout_seconds
 
     def extract_text(self, file_path: Path) -> str:
@@ -27,7 +31,7 @@ class TikaClient:
         }
         with file_path.open("rb") as source:
             response = requests.put(
-                f"{self._endpoint}/tika",
+                self._endpoint,
                 data=source,
                 headers=headers,
                 timeout=self._timeout_seconds,

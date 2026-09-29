@@ -269,16 +269,17 @@ class GeminiEmbeddingProvider:
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
+        model_name = self._model.removeprefix("models/")
         requests_payload = [
             {
-                "model": f"models/{self._model}",
+                "model": f"models/{model_name}",
                 "content": {"parts": [{"text": text}]},
             }
             for text in texts
         ]
         body = json.dumps({"requests": requests_payload}).encode("utf-8")
         url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/{self._model}:batchEmbedContents"
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:batchEmbedContents"
             f"?key={self._api_key}"
         )
         request = urllib.request.Request(

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import hashlib
 import re
 from dataclasses import dataclass
-from typing import Any
 
 from knowledge_fabric.ingestion.models import Chunk, Document, SourceFormat
 

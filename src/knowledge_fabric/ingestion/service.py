@@ -71,6 +71,10 @@ class DocumentIngestionService:
             elif source_format is SourceFormat.HTML:
                 # Extract HTML title and headings
                 title_match = _HTML_TITLE_PATTERN.search(raw_text)
+                if title_match:
+                    extracted_title = unescape(title_match.group(1)).strip()
+                    if extracted_title:
+                        title = extracted_title
                 headings = [unescape(m.group(1)).strip() for m in _HTML_HEADING_PATTERN.finditer(raw_text)]
                 content_text = _strip_html(raw_text)
             else:

@@ -314,20 +314,20 @@ class KnowledgeRepository:
             if effective_tenant is not None:
                 cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
 
-            where_clause = ""
             params: list[Any] = []
             if effective_tenant is not None:
-                where_clause = "WHERE tenant_id = %s"
                 params = [effective_tenant]
 
             # Orphaned chunks (document_id does not exist in documents)
             cursor.execute(
-                """
+                f"""
                 SELECT COUNT(*)
                 FROM chunks c
                 LEFT JOIN documents d ON d.id = c.document_id
                 WHERE d.id IS NULL
-                """
+                {"AND c.tenant_id = %s" if effective_tenant else ""}
+                """,
+                params,
             )
             row_orphans = cursor.fetchone()
             orphaned_chunks = int(row_orphans[0]) if row_orphans else 0

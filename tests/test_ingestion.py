@@ -181,3 +181,22 @@ def test_tika_client_endpoint_normalization() -> None:
     client4 = TikaClient(endpoint="http://localhost:9998/tika/")
     assert client4._endpoint == "http://localhost:9998/tika"
 
+
+def test_ingest_html_extracts_title_and_headings(tmp_path: Path) -> None:
+    input_file = tmp_path / "page_with_title.html"
+    input_file.write_text(
+        "<html><head><title>Enterprise Architecture Guide</title></head>"
+        "<body><h1>Chapter 1: Principles</h1><h2>Core Tenets</h2><p>Content.</p></body></html>",
+        encoding="utf-8",
+    )
+
+    service = DocumentIngestionService(TikaClient(endpoint="http://localhost:9998"))
+    document = service.ingest_file(input_file)
+
+    assert document.source_format is SourceFormat.HTML
+    assert document.title == "Enterprise Architecture Guide"
+    assert document.headings == ["Chapter 1: Principles", "Core Tenets"]
+    assert "Chapter 1: Principles" in document.content_text
+    assert "Enterprise Architecture Guide" in document.content_text
+
+

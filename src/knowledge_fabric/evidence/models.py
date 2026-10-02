@@ -46,9 +46,9 @@ def compute_package_signature(
     timestamp_utc: str,
     key: str | bytes | None = None,
 ) -> str:
-    """Compute HMAC-SHA256 signature for evidence package provenance.
+    """Compute HMAC-SHA256 signature for evidence package provenance using canonical JSON.
 
-    Formula: HMAC-SHA256(key, f"{retrieval_id}:{tenant_id or ''}:{query_fingerprint}:{provenance_digest}:{timestamp_utc}")
+    Formula: HMAC-SHA256(key, canonical_json([retrieval_id, tenant_id, query_fingerprint, provenance_digest, timestamp_utc]))
     Returns empty string if key is not configured.
     """
     secret = key if key is not None else os.environ.get("KF_EVIDENCE_HMAC_KEY", "")
@@ -59,7 +59,11 @@ def compute_package_signature(
     else:
         secret_bytes = secret
     tenant = tenant_id or ""
-    msg = f"{retrieval_id}:{tenant}:{query_fingerprint}:{provenance_digest}:{timestamp_utc}".encode("utf-8")
+    msg = json.dumps(
+        [retrieval_id, tenant, query_fingerprint, provenance_digest, timestamp_utc],
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
     return hmac.new(secret_bytes, msg, hashlib.sha256).hexdigest()
 
 
@@ -70,11 +74,11 @@ def compute_query_fingerprint(
 ) -> str:
     """Compute deterministic SHA-256 fingerprint for a retrieval request.
 
-    Formula: SHA-256(tenant_id + ":" + query_text + ":" + mode)
+    Formula: SHA-256(canonical_json([tenant_id, query_text, mode]))
     """
     tenant = tenant_id if tenant_id is not None else ""
-    raw = f"{tenant}:{query_text}:{mode}".encode("utf-8")
-    return hashlib.sha256(raw).hexdigest()
+    msg = json.dumps([tenant, query_text, mode], separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return hashlib.sha256(msg).hexdigest()
 
 
 @dataclass(slots=True)

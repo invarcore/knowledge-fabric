@@ -30,8 +30,7 @@ class AuditLogger:
         details_payload = details or {}
         connection = self._connection_factory()
         with connection.cursor() as cursor:
-            if tenant_id is not None:
-                cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [tenant_id])
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
             cursor.execute(
                 """
                 INSERT INTO retrieval_runs (tenant_id, query_text, top_k, retrieval_mode, filters, latency_ms, result_count)

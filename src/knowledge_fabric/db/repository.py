@@ -254,13 +254,17 @@ class KnowledgeRepository:
 
             where_doc = ""
             where_chunk = ""
+            where_joined = ""
             params_doc: list[Any] = []
             params_chunk: list[Any] = []
+            params_joined: list[Any] = []
             if effective_tenant is not None:
                 where_doc = "WHERE tenant_id = %s"
                 where_chunk = "WHERE tenant_id = %s"
+                where_joined = "WHERE d.tenant_id = %s"
                 params_doc = [effective_tenant]
                 params_chunk = [effective_tenant]
+                params_joined = [effective_tenant]
 
             # Total documents
             cursor.execute(f"SELECT COUNT(*) FROM documents {where_doc}", params_doc)
@@ -281,11 +285,11 @@ class KnowledgeRepository:
                   MAX(d.updated_at) AS last_indexed_at
                 FROM documents d
                 LEFT JOIN chunks c ON c.document_id = d.id
-                {where_doc}
+                {where_joined}
                 GROUP BY d.source_type
                 ORDER BY d.source_type ASC
             """
-            cursor.execute(sql_sources, params_doc)
+            cursor.execute(sql_sources, params_joined)
             sources = [
                 {
                     "source_type": str(r[0]),

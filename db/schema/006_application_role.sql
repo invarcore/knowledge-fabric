@@ -7,7 +7,14 @@
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'kf_app') THEN
-        CREATE ROLE kf_app WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+        CREATE ROLE kf_app WITH LOGIN PASSWORD 'kf_app_password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+    ELSE
+        ALTER ROLE kf_app WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+    END IF;
+
+    -- Automatically enable RLS if function exists
+    IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'enable_tenant_rls') THEN
+        PERFORM enable_tenant_rls();
     END IF;
 END
 $$;

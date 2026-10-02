@@ -93,7 +93,7 @@ class PostgresRetrievalStore:
         if document_id is not None:
             sql = f"""
                 SELECT id, source_uri, source_type, title, metadata, content_text, created_at, updated_at
-                FROM documents
+                FROM documents d
                 WHERE id = %s
                   {tenant_clause}
                 LIMIT 1
@@ -102,7 +102,7 @@ class PostgresRetrievalStore:
         else:
             sql = f"""
                 SELECT id, source_uri, source_type, title, metadata, content_text, created_at, updated_at
-                FROM documents
+                FROM documents d
                 WHERE source_uri = %s
                   {tenant_clause}
                 LIMIT 1
@@ -137,7 +137,7 @@ class PostgresRetrievalStore:
         tenant_clause, tenant_params = self._filter_clause(tenant_id=tenant_id)
         sql = f"""
             SELECT source_type, COUNT(*) AS doc_count
-            FROM documents
+            FROM documents d
             WHERE TRUE
               {tenant_clause}
             GROUP BY source_type

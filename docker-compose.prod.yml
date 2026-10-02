@@ -57,5 +57,29 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  mcp:
+    image: ghcr.io/sagarv48/knowledge-fabric:v0.1.1
+    container_name: knowledge-fabric-mcp
+    command: ["knowledge-fabric-mcp"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      KF_DB_HOST: postgres
+      KF_DB_PORT: "5432"
+      KF_DB_NAME: ${POSTGRES_DB:-knowledge_fabric}
+      KF_DB_USER: ${POSTGRES_USER:-knowledge_fabric}
+      KF_DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+      TIKA_ENDPOINT: "http://tika:9998"
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      FABRIC_SIGNING_KEY: ${FABRIC_SIGNING_KEY:-enterprise-secret-signing-key-min-32-chars}
+      FABRIC_APPROVAL_ENFORCEMENT: ${FABRIC_APPROVAL_ENFORCEMENT:-enforce}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      tika:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   postgres_data:

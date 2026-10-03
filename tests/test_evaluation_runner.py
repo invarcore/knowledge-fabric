@@ -23,6 +23,8 @@ from knowledge_fabric.evaluation import (
     recall_at_k,
 )
 
+_SEED_QUERIES_PATH = Path(__file__).resolve().parent.parent / "src" / "knowledge_fabric" / "evaluation" / "queries.yaml"
+
 
 def test_metric_functions() -> None:
     ranked = [3, 1, 9, 7, 5]
@@ -106,7 +108,7 @@ queries:
 
 
 def test_evaluation_runner_modes() -> None:
-    queries = load_queries("src/knowledge_fabric/evaluation/queries.yaml")
+    queries = load_queries(_SEED_QUERIES_PATH)
 
     def _retriever(mode: str, query: str, top_k: int) -> list[int]:
         if mode == "lexical":
@@ -218,7 +220,7 @@ def test_seed_pipeline_and_pipeline_retriever() -> None:
     assert len(hybrid_hits) > 0
 
     # Run runner over seed dataset using seed pipeline
-    metadata, queries = load_dataset("src/knowledge_fabric/evaluation/queries.yaml")
+    metadata, queries = load_dataset(_SEED_QUERIES_PATH)
     runner = RetrievalEvaluationRunner(retriever, dataset_id=metadata["dataset_id"])
     report = runner.evaluate(queries=queries, modes=("lexical", "vector", "hybrid"))
 

@@ -758,7 +758,7 @@ def test_config_env_overrides_and_as_dict(tmp_path: Path):
         "RETRIEVAL_BACKEND": "qdrant",
         "RERANKER": "bge",
     }
-    with patch.dict(os.environ, env_vars):
+    with patch.dict(os.environ, env_vars, clear=True):
         settings_override = load_settings(str(nonexistent))
         assert settings_override.database.host == "custom_host"
         assert settings_override.database.port == 5433
@@ -770,6 +770,22 @@ def test_config_env_overrides_and_as_dict(tmp_path: Path):
         assert settings_override.embeddings.dimension == 768
         assert settings_override.retrieval.backend == "qdrant"
         assert settings_override.reranking.provider == "bge"
+
+    # KF_DB_* environment overrides
+    kf_vars = {
+        "KF_DB_HOST": "kf-host",
+        "KF_DB_PORT": "5434",
+        "KF_DB_NAME": "kf-db",
+        "KF_DB_USER": "kf-user",
+        "KF_DB_PASSWORD": "kf-password",
+    }
+    with patch.dict(os.environ, kf_vars, clear=True):
+        kf_settings = load_settings(str(nonexistent))
+        assert kf_settings.database.host == "kf-host"
+        assert kf_settings.database.port == 5434
+        assert kf_settings.database.name == "kf-db"
+        assert kf_settings.database.user == "kf-user"
+        assert kf_settings.database.password == "kf-password"
 
     # _as_dict error
     with pytest.raises(ValueError, match="Expected mapping for 'database'"):

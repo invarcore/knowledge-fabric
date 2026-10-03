@@ -336,7 +336,12 @@ def _extract_ranked_ids(result: Any) -> list[int]:
 
 def load_dataset(path: str | Path) -> tuple[dict[str, Any], list[EvaluationQuery]]:
     """Load evaluation dataset metadata and queries from YAML or JSON."""
-    raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    target_path = Path(path)
+    if not target_path.exists() and str(path).endswith("queries.yaml"):
+        candidate = Path(__file__).resolve().parent / "queries.yaml"
+        if candidate.exists():
+            target_path = candidate
+    raw = yaml.safe_load(target_path.read_text(encoding="utf-8")) or {}
     metadata = {
         "version": raw.get("version", "1.0.0"),
         "dataset_id": raw.get("dataset_id", "custom"),

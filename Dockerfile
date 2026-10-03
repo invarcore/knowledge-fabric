@@ -48,6 +48,7 @@ COPY --from=builder --chown=fabric:fabric /opt/venv /opt/venv
 COPY --chown=fabric:fabric config ./config
 COPY --chown=fabric:fabric db/schema ./db/schema
 COPY --chown=fabric:fabric src ./src
+COPY --chown=fabric:fabric scripts ./scripts
 
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \

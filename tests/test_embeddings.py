@@ -100,3 +100,58 @@ def test_sentence_transformer_missing_dep() -> None:
         assert len(vecs[0]) == 384
     except ImportError as exc:
         assert "sentence-transformers is not installed" in str(exc)
+
+
+def test_openrouter_embedding_provider_missing_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    with pytest.raises(OSError, match="OPENROUTER_API_KEY environment variable is required"):
+        build_embedding_provider("openrouter")
+
+
+def test_openrouter_embedding_provider_mocked(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    provider = build_embedding_provider("openrouter")
+    assert provider.dimension == 1536
+
+    # Test custom model dimension
+    monkeypatch.setenv("OPENROUTER_EMBED_MODEL", "baai/bge-m3")
+    bge_provider = build_embedding_provider("openrouter")
+    assert bge_provider.dimension == 1024
+
+    # Test empty texts
+    assert provider.embed_texts([]) == []
+
+    class _FakeOpenRouterResponse:
+        def __enter__(self) -> "_FakeOpenRouterResponse":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            payload = {
+                "object": "list",
+                "data": [
+                    {"index": 1, "embedding": [0.42] * 1536},
+                    {"index": 0, "embedding": [0.11] * 1536},
+                ],
+                "model": "openai/text-embedding-3-small",
+            }
+            return json.dumps(payload).encode("utf-8")
+
+    captured_headers: dict[str, str] = {}
+
+    def _fake_urlopen(req: Any, timeout: int = 30) -> _FakeOpenRouterResponse:
+        captured_headers.update(req.headers)
+        return _FakeOpenRouterResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen)
+
+    vecs = provider.embed_texts(["doc1", "doc2"])
+    assert len(vecs) == 2
+    assert len(vecs[0]) == 1536
+    # Verified ordering by index (index 0 was returned second in mock payload)
+    assert vecs[0][0] == 0.11
+    assert vecs[1][0] == 0.42
+    assert "Bearer test-openrouter-key" in captured_headers.get("Authorization", "")
+

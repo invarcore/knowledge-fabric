@@ -8,6 +8,7 @@ from knowledge_fabric.embeddings.providers import (
     MockEmbeddingProvider,
     OllamaEmbeddingProvider,
     OpenAIEmbeddingProvider,
+    OpenRouterEmbeddingProvider,
     SentenceTransformerEmbeddingProvider,
     build_embedding_provider,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "MockEmbeddingProvider",
     "OllamaEmbeddingProvider",
     "OpenAIEmbeddingProvider",
+    "OpenRouterEmbeddingProvider",
     "SentenceTransformerEmbeddingProvider",
     "build_embedding_provider",
 ]

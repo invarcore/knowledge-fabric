@@ -36,7 +36,7 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
 from knowledge_fabric.chunking.service import ChunkingConfig, DocumentChunkingService
-from knowledge_fabric.embeddings.providers import MockEmbeddingProvider
+from knowledge_fabric.embeddings.providers import MockEmbeddingProvider, OpenRouterEmbeddingProvider
 from knowledge_fabric.evidence.models import (
     compute_chunk_hash,
     compute_package_digest,
@@ -58,7 +58,13 @@ class HermeticMemoryRetrievalStore:
         self._doc_id_seq = 1
         self._chunk_id_seq = 1
 
-    def add_document(self, doc: Document, chunks: list[Any], tenant_id: str = "default") -> int:
+    def add_document(
+        self,
+        doc: Document,
+        chunks: list[Any],
+        tenant_id: str = "default",
+        embeddings: list[list[float]] | None = None,
+    ) -> int:
         doc_id = self._doc_id_seq
         self._doc_id_seq += 1
         doc_record = {
@@ -72,7 +78,7 @@ class HermeticMemoryRetrievalStore:
         }
         self.documents.setdefault(tenant_id, []).append(doc_record)
 
-        for c in chunks:
+        for idx, c in enumerate(chunks):
             chunk_id = self._chunk_id_seq
             self._chunk_id_seq += 1
             chunk_record = {
@@ -83,6 +89,7 @@ class HermeticMemoryRetrievalStore:
                 "chunk_text": c.chunk_text,
                 "metadata": c.metadata,
                 "tenant_id": tenant_id,
+                "embedding": embeddings[idx] if embeddings and idx < len(embeddings) else None,
             }
             self.chunks.setdefault(tenant_id, []).append(chunk_record)
 
@@ -132,12 +139,21 @@ class HermeticMemoryRetrievalStore:
         effective_tenant = tenant_id or "default"
         tenant_chunks = self.chunks.get(effective_tenant, [])
 
-        # Simulated semantic vector relevance based on hash proximity
         hits: list[RetrievalHit] = []
         for i, c in enumerate(tenant_chunks):
             if source_type and c["source_type"] != source_type:
                 continue
-            sim_score = max(0.1, 0.95 - (i * 0.08))
+            chunk_vec = c.get("embedding")
+            if chunk_vec and len(chunk_vec) == len(query_vector):
+                # Calculate real cosine similarity
+                dot = sum(x * y for x, y in zip(query_vector, chunk_vec))
+                norm_q = sum(x * x for x in query_vector) ** 0.5
+                norm_c = sum(y * y for y in chunk_vec) ** 0.5
+                sim_score = (dot / (norm_q * norm_c)) if (norm_q > 0 and norm_c > 0) else 0.0
+            else:
+                # Simulated semantic vector relevance based on hash proximity
+                sim_score = max(0.1, 0.95 - (i * 0.08))
+
             hits.append(
                 RetrievalHit(
                     chunk_id=c["id"],
@@ -337,11 +353,16 @@ def run_local_hermetic_smoke_test() -> bool:
     return True
 
 
-def run_openrouter_smoke_test(model: str = "openrouter/free", api_key: str | None = None) -> bool:
-    """Connect to OpenRouter free tier and synthesize grounded answers from Knowledge Fabric evidence."""
+def run_openrouter_smoke_test(
+    model: str = "openrouter/free",
+    api_key: str | None = None,
+    embed_model: str = "openai/text-embedding-3-small",
+) -> bool:
+    """Connect to OpenRouter and synthesize grounded answers using OpenRouter embeddings and LLM."""
     print("=" * 70)
     print("🚀 Knowledge Fabric End-to-End Verification: [OPENROUTER MODE]")
-    print(f"   Model: {model}")
+    print(f"   LLM Model:        {model}")
+    print(f"   Embedding Model:  {embed_model}")
     print("=" * 70)
 
     token = api_key or os.environ.get("OPENROUTER_API_KEY", "")
@@ -350,7 +371,7 @@ def run_openrouter_smoke_test(model: str = "openrouter/free", api_key: str | Non
         print("   Get a free API key at: https://openrouter.ai/keys")
         return False
 
-    # 1. First run hermetic retrieval to generate real evidence
+    # 1. Ingest document chunks
     store = HermeticMemoryRetrievalStore()
     chunker = DocumentChunkingService(config=ChunkingConfig(max_chars=400, overlap_chars=50))
     doc = Document(
@@ -364,16 +385,32 @@ def run_openrouter_smoke_test(model: str = "openrouter/free", api_key: str | Non
             "and CISO on-call. All elevated sessions are recorded and capped at 2 hours maximum duration."
         ),
     )
-    store.add_document(doc, chunker.chunk_document(doc), tenant_id="security-ops")
-    pipeline = RetrievalPipeline(retrieval_store=store, embedding_provider=MockEmbeddingProvider(_dimension=16))
+    chunks = chunker.chunk_document(doc)
+
+    # 2. OpenRouter Embedding Provider Setup
+    print(f"\n[Turn 1] Generating OpenRouter vector embeddings with '{embed_model}'...")
+    chunk_embeddings = None
+    embedding_provider: Any
+    try:
+        embedding_provider = OpenRouterEmbeddingProvider.from_env(api_key=token, model=embed_model)
+        chunk_texts = [c.chunk_text for c in chunks]
+        chunk_embeddings = embedding_provider.embed_texts(chunk_texts)
+        print(f"   ✓ Generated {len(chunk_embeddings)} OpenRouter vector embeddings ({embedding_provider.dimension}d)")
+    except Exception as exc:
+        print(f"   ⚠️ OpenRouter embeddings skipped/failed ({exc}). Using mock embeddings for vector retrieval.")
+        embedding_provider = MockEmbeddingProvider(_dimension=16)
+
+    store.add_document(doc, chunks, tenant_id="security-ops", embeddings=chunk_embeddings)
+    pipeline = RetrievalPipeline(retrieval_store=store, embedding_provider=embedding_provider)
 
     query = "What is the procedure for emergency privilege escalation?"
-    package, _ = pipeline.retrieve_with_trace(query_text=query, tenant_id="security-ops")
+    package, trace = pipeline.retrieve_with_trace(query_text=query, tenant_id="security-ops")
+    print(f"   ✓ Strategy: {trace.strategy} (lexical={trace.lexical_count}, vector={trace.vector_count})")
     evidence_text = "\n\n".join(f"[{item.citation_source}]: {item.snippet}" for item in package.items)
 
-    print(f"\n[Turn 1] Retrieved {len(package.items)} evidence passages for query: \"{query}\"")
+    print(f"\n[Turn 2] Retrieved {len(package.items)} evidence passages for query: \"{query}\"")
 
-    # 2. Query OpenRouter with grounded evidence
+    # 3. Query OpenRouter with grounded evidence
     prompt = (
         f"You are a compliance assistant. Using ONLY the evidence passages below, answer the question.\n\n"
         f"Evidence:\n{evidence_text}\n\n"
@@ -422,12 +459,21 @@ def run_openrouter_smoke_test(model: str = "openrouter/free", api_key: str | Non
 def main() -> int:
     parser = argparse.ArgumentParser(description="Knowledge Fabric Live Verification Smoke Test")
     parser.add_argument("--openrouter", action="store_true", help="Run with OpenRouter cloud provider")
-    parser.add_argument("--model", default="openrouter/free", help="Model slug to use with OpenRouter")
+    parser.add_argument("--model", default="openrouter/free", help="LLM model slug to use with OpenRouter")
+    parser.add_argument(
+        "--embed-model",
+        default="openai/text-embedding-3-small",
+        help="Embedding model for OpenRouter (default: openai/text-embedding-3-small)",
+    )
     parser.add_argument("--api-key", help="OpenRouter API key (defaults to OPENROUTER_API_KEY env var)")
     args = parser.parse_args()
 
     if args.openrouter:
-        success = run_openrouter_smoke_test(model=args.model, api_key=args.api_key)
+        success = run_openrouter_smoke_test(
+            model=args.model,
+            api_key=args.api_key,
+            embed_model=args.embed_model,
+        )
     else:
         success = run_local_hermetic_smoke_test()
 

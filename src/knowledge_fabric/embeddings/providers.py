@@ -354,6 +354,75 @@ class SentenceTransformerEmbeddingProvider:
         return [vec.tolist() for vec in embeddings]
 
 
+@dataclass(slots=True)
+class OpenRouterEmbeddingProvider:
+    """Calls the OpenRouter embeddings API (OpenAI-compatible endpoint).
+
+    Prerequisites:
+        Set OPENROUTER_API_KEY.
+        Get a key from https://openrouter.ai/keys
+
+    Default model:
+        openai/text-embedding-3-small (1536 dimensions)
+
+    Environment variables:
+        OPENROUTER_API_KEY      (required)
+        OPENROUTER_EMBED_MODEL  default: openai/text-embedding-3-small
+        OPENROUTER_BASE_URL     default: https://openrouter.ai/api/v1
+    """
+
+    _model: str
+    _api_key: str
+    _dimension: int
+    _base_url: str = "https://openrouter.ai/api/v1"
+
+    @classmethod
+    def from_env(cls, **kwargs: Any) -> OpenRouterEmbeddingProvider:
+        api_key = kwargs.get("api_key") or os.environ.get("OPENROUTER_API_KEY", "")
+        if not api_key:
+            raise OSError("OPENROUTER_API_KEY environment variable is required")
+        model = kwargs.get("model") or os.environ.get("OPENROUTER_EMBED_MODEL", "openai/text-embedding-3-small")
+        base_url = (kwargs.get("base_url") or os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")).rstrip("/")
+        dim_by_model: dict[str, int] = {
+            "openai/text-embedding-3-small": 1536,
+            "text-embedding-3-small": 1536,
+            "openai/text-embedding-3-large": 3072,
+            "text-embedding-3-large": 3072,
+            "openai/text-embedding-ada-002": 1536,
+            "text-embedding-ada-002": 1536,
+            "baai/bge-m3": 1024,
+            "baai/bge-large-en-v1.5": 1024,
+            "cohere/embed-english-v3.0": 1024,
+            "cohere/embed-multilingual-v3.0": 1024,
+        }
+        dimension = dim_by_model.get(model) or kwargs.get("dimension") or 1536
+        return cls(_model=model, _api_key=api_key, _dimension=dimension, _base_url=base_url)
+
+    @property
+    def dimension(self) -> int:
+        return self._dimension
+
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        body = json.dumps({"model": self._model, "input": texts}).encode("utf-8")
+        request = urllib.request.Request(
+            f"{self._base_url}/embeddings",
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self._api_key}",
+                "HTTP-Referer": "https://github.com/sagarv48/knowledge-fabric",
+                "X-Title": "Knowledge Fabric",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        data = sorted(result["data"], key=lambda item: item.get("index", 0))
+        return [item["embedding"] for item in data]
+
+
 class EmbeddingProviderRegistry:
     """Extensible registry for embedding providers."""
 
@@ -401,6 +470,7 @@ EmbeddingProviderRegistry.register("ollama", OllamaEmbeddingProvider.from_env)
 EmbeddingProviderRegistry.register("openai", OpenAIEmbeddingProvider.from_env)
 EmbeddingProviderRegistry.register("cohere", CohereEmbeddingProvider.from_env)
 EmbeddingProviderRegistry.register("gemini", GeminiEmbeddingProvider.from_env)
+EmbeddingProviderRegistry.register("openrouter", OpenRouterEmbeddingProvider.from_env)
 EmbeddingProviderRegistry.register("sentence_transformers", SentenceTransformerEmbeddingProvider.from_env)
 EmbeddingProviderRegistry.register("sentence-transformers", SentenceTransformerEmbeddingProvider.from_env)
 EmbeddingProviderRegistry.register("local", SentenceTransformerEmbeddingProvider.from_env)
@@ -409,15 +479,16 @@ EmbeddingProviderRegistry.register("local", SentenceTransformerEmbeddingProvider
 def build_embedding_provider(provider_name: str = "", dimension: int = 768) -> EmbeddingProvider:
     """Factory that reads EMBEDDING_PROVIDER env var and returns the right provider.
 
-    EMBEDDING_PROVIDER=mock     → MockEmbeddingProvider (default, dev only — emits warning)
-    EMBEDDING_PROVIDER=ollama   → OllamaEmbeddingProvider.from_env()
-    EMBEDDING_PROVIDER=gemini   → GeminiEmbeddingProvider.from_env()
-    EMBEDDING_PROVIDER=openai   → OpenAIEmbeddingProvider.from_env()
-    EMBEDDING_PROVIDER=cohere   → CohereEmbeddingProvider.from_env()
-    EMBEDDING_PROVIDER=local    → SentenceTransformerEmbeddingProvider.from_env()
+    EMBEDDING_PROVIDER=mock         → MockEmbeddingProvider (default, dev only — emits warning)
+    EMBEDDING_PROVIDER=openrouter   → OpenRouterEmbeddingProvider.from_env()
+    EMBEDDING_PROVIDER=ollama       → OllamaEmbeddingProvider.from_env()
+    EMBEDDING_PROVIDER=gemini       → GeminiEmbeddingProvider.from_env()
+    EMBEDDING_PROVIDER=openai       → OpenAIEmbeddingProvider.from_env()
+    EMBEDDING_PROVIDER=cohere       → CohereEmbeddingProvider.from_env()
+    EMBEDDING_PROVIDER=local        → SentenceTransformerEmbeddingProvider.from_env()
 
     Recommended for local dev:  ollama (free, local) or local (sentence-transformers)
-    Recommended for production: gemini (free tier/enterprise), cohere, or openai
+    Recommended for production: openrouter, gemini (free tier/enterprise), cohere, or openai
     """
     name = (provider_name or os.environ.get("EMBEDDING_PROVIDER", "mock")).lower().strip()
     if EmbeddingProviderRegistry.is_registered(name):

@@ -32,7 +32,7 @@ jobs:
       - name: Install Dependencies
         run: |
           uv venv
-          uv pip install pytest pydantic fastmcp
+          uv pip install pytest pytest-cov pydantic fastmcp
           if [ -f primary/pyproject.toml ]; then uv pip install -e ./primary; fi
           if [ -f sibling/pyproject.toml ]; then uv pip install -e ./sibling; fi
 

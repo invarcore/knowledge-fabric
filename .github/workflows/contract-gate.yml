@@ -43,7 +43,7 @@ jobs:
       - name: Run Sibling Contract Tests
         run: |
           if [ -d sibling/tests ]; then
-            uv run pytest sibling/tests -k "contract or evidence" -v
+            uv run pytest sibling/tests -k "contract or evidence" -v --no-cov
           fi
 
       - name: Verify Cryptographic Hash Symmetry

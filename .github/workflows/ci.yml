@@ -6,12 +6,22 @@ on:
   pull_request:
 
 jobs:
+  docker-smoke-test:
+    name: Docker Hermetic Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Test Suite & Smoke Test via Docker Compose
+        run: docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     services:
       postgres:
@@ -59,13 +69,16 @@ jobs:
             -f db/schema/003_multi_tenancy.sql
 
       - name: Lint (ruff)
-        run: uv run ruff check src/
+        run: uv run ruff check .
 
       - name: Type check (pyright)
         run: uv run pyright src/ || true
 
-      - name: Run tests
-        run: uv run pytest tests/ -v --tb=short
+      - name: Run tests with coverage
+        run: uv run pytest tests/ -v --tb=short --cov=knowledge_fabric --cov-report=term-missing --cov-fail-under=90
+
+      - name: Live Retrieval Smoke Test
+        run: uv run python benchmarks/live_retrieval_smoke_test.py
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4

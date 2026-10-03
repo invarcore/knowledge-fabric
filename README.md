@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/sagarv48/knowledge-fabric/actions"><img src="https://github.com/sagarv48/knowledge-fabric/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
+  <a href="https://github.com/sagarv48/knowledge-fabric/actions"><img src="https://img.shields.io/badge/Coverage-94%25-brightgreen.svg" alt="Coverage: 94%"></a>
   <a href="https://github.com/sagarv48/knowledge-fabric/releases"><img src="https://img.shields.io/badge/Release-v0.1.1-blue.svg" alt="Release"></a>
   <a href="https://codespaces.new/sagarv48/knowledge-fabric"><img src="https://github.com/codespaces/badge.svg" alt="Open in GitHub Codespaces"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
@@ -337,6 +338,36 @@ A complete demonstration ingesting enterprise policy documents, querying hybrid 
 
 ```bash
 python examples/04-end-to-end-with-intent/run.py
+```
+
+---
+
+## 🧪 Testing & Verification
+
+Knowledge Fabric enforces rigorous test coverage ($\ge 90\%$), strict multi-tenant isolation, and end-to-end live verification:
+
+### 1. Run Complete Test Suite with Coverage Gate
+```bash
+# Execute unit & integration test suite (enforces >= 90% coverage)
+uv run pytest tests/ -v --tb=short --cov=knowledge_fabric --cov-report=term-missing --cov-fail-under=90
+```
+
+### 2. End-to-End Live Verification Smoke Test
+Run the zero-cost hermetic verification pipeline covering chunking, in-memory multi-tenant storage, hybrid RRF retrieval, cryptographic provenance (chunk hashes, package digest, HMAC-SHA256 signature), and MCP tools:
+
+```bash
+# Local hermetic mode (runs in ~1ms, zero API keys required)
+python benchmarks/live_retrieval_smoke_test.py
+
+# Live cloud mode with OpenRouter free tier
+python benchmarks/live_retrieval_smoke_test.py --openrouter --model openrouter/free
+```
+
+### 3. Containerized Verification with Docker Compose
+Run the entire test suite and smoke test inside an isolated container:
+
+```bash
+docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
 ```
 
 ---

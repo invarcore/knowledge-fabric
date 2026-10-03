@@ -21,7 +21,6 @@ if str(_SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(_SRC_ROOT))
 
 from knowledge_fabric.fusion.rrf import reciprocal_rank_fusion
-from knowledge_fabric.reranking import build_reranker
 
 
 def dcg_at_k(relevances: list[int], k: int = 10) -> float:

@@ -1,0 +1,20 @@
+services:
+  test-suite:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: knowledge-fabric-test-suite
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["uv", "run", "pytest", "--cov=knowledge_fabric", "--cov-report=term-missing", "--cov-fail-under=90"]
+
+  smoke-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: knowledge-fabric-smoke-test
+    depends_on:
+      - test-suite
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["uv", "run", "python", "benchmarks/live_retrieval_smoke_test.py"]

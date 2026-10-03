@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
+
 
 
 @dataclass(slots=True)
@@ -62,9 +65,6 @@ class Settings:
     retrieval: RetrievalSettings
     reranking: RerankingSettings
 
-
-import os
-from urllib.parse import urlparse
 
 def load_settings(path: str | Path = "config/settings.yaml") -> Settings:
     config_file = Path(path)

@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0.0", "ruff>=0.4.0", "pyright>=1.1.0"]
+dev = ["pytest>=8.0.0", "pytest-cov>=5.0.0", "ruff>=0.4.0", "pyright>=1.1.0"]
 reranking = ["sentence-transformers>=3.0.0"]
 
 [project.scripts]
@@ -49,6 +49,9 @@ ignore = ["E501", "W292", "W293"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ALL"]
+"benchmarks/*" = ["E402"]
+"examples/*" = ["E402"]
+
 
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]

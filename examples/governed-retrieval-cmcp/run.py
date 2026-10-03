@@ -12,8 +12,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
-import hashlib
 from pathlib import Path
 import sys
 
@@ -37,7 +35,6 @@ from gateway import (
     CmcpGateway,
     PolicyContext,
     PolicyPrincipal,
-    PolicyResource,
     PolicyVerdict,
     TraceClaim,
     hash_evidence_chunk,
@@ -231,7 +228,7 @@ def run_scenario_audit_verification(
     print("    │ \U0001f510 TRACE Claim Cryptographic Verification                   │")
     print(f"    │    Claim ID:        {claim.claim_id:<41} │")
     print(f"    │    Policy Hash:     {claim.policy_bundle_hash[:16]}... \u2713 matches loaded bundle │")
-    print(f"    │    Evidence Hashes:                                              │")
+    print("    │    Evidence Hashes:                                              │")
 
     all_chunks_valid = True
     for i, chunk in enumerate(evidence_chunks, start=1):

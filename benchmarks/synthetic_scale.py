@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import platform
 import random
 import string
@@ -31,7 +30,6 @@ if str(_SRC_ROOT) not in sys.path:
 
 from knowledge_fabric.embeddings import MockEmbeddingProvider
 from knowledge_fabric.evaluation.runner import InMemoryEvaluationStore
-from knowledge_fabric.fusion.rrf import reciprocal_rank_fusion
 from knowledge_fabric.retrieval.pipeline import RetrievalPipeline
 
 

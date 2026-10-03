@@ -19,10 +19,9 @@ for root in [_KF_ROOT, _IF_ROOT]:
     if root.exists() and str(root) not in sys.path:
         sys.path.insert(0, str(root))
 
-from intent_fabric.planning.llm import RuleBasedPlanner, build_planner
+from intent_fabric.planning.llm import build_planner
 from intent_fabric.policies.engine import PolicyEngine
-from intent_fabric.policies.loader import PolicyRuleLoader
-from intent_fabric.policies.rules import PolicyRule, PolicyRuleSet, RuleDecision
+from intent_fabric.policies.rules import RuleDecision
 
 
 def main() -> None:
@@ -48,10 +47,10 @@ def main() -> None:
     # Step 2: Querying via Knowledge Fabric
     # ──────────────────────────────────────────────────────────────────────────
     query = "What is the process for emergency access provisioning?"
-    print(f"\n[2] Querying via knowledge-fabric MCP...")
+    print("\n[2] Querying via knowledge-fabric MCP...")
     print(f"    Query: \"{query}\"")
-    print(f"    Mode:  Hybrid (Lexical BM25 + Vector Cosine + RRF Fusion)")
-    print(f"    Tenant: security-ops\n")
+    print("    Mode:  Hybrid (Lexical BM25 + Vector Cosine + RRF Fusion)")
+    print("    Tenant: security-ops\n")
 
     # Sample top evidence retrieved for this query
     evidence_items = [
@@ -89,7 +88,7 @@ def main() -> None:
     planner_choice = os.environ.get("INTENT_PLANNER", "ollama")
     planner = build_planner(planner_choice)
 
-    print(f"\n[3] Submitting intent to intent-fabric...")
+    print("\n[3] Submitting intent to intent-fabric...")
     print(f"    Intent:  \"{intent_prompt}\"")
     print(f"    Planner: {type(planner).__name__} ({planner_choice})")
 
@@ -129,7 +128,7 @@ def main() -> None:
     # ──────────────────────────────────────────────────────────────────────────
     # Step 4: Policy Evaluation
     # ──────────────────────────────────────────────────────────────────────────
-    print(f"\n[4] Policy evaluation against active rules...")
+    print("\n[4] Policy evaluation against active rules...")
 
     # Load policy engine with standard enterprise rules
     policy_engine = PolicyEngine()
@@ -156,9 +155,9 @@ def main() -> None:
     print("    {")
     print(f'      "approval_id": "appr_sec_7a2f_{os.getpid()}",')
     print(f'      "plan_id": "{plan.plan_id}",')
-    print(f'      "tenant_id": "security-ops",')
-    print(f'      "requires_approval": true,')
-    print(f'      "reasons": [')
+    print('      "tenant_id": "security-ops",')
+    print('      "requires_approval": true,')
+    print('      "reasons": [')
     for r in approval_reasons:
         print(f'        "{r}",')
     print("      ]")

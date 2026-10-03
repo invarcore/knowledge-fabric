@@ -8,6 +8,10 @@ __pycache__/
 .venv/
 venv/
 env/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 
 # Local config and secrets
 .env

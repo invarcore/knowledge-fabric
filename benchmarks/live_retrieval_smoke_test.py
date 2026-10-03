@@ -35,6 +35,8 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
+from pathlib import Path
+
 from knowledge_fabric.chunking.service import ChunkingConfig, DocumentChunkingService
 from knowledge_fabric.embeddings.providers import MockEmbeddingProvider, OpenRouterEmbeddingProvider
 from knowledge_fabric.evidence.models import (
@@ -371,24 +373,37 @@ def run_openrouter_smoke_test(
         print("   Get a free API key at: https://openrouter.ai/keys")
         return False
 
-    # 1. Ingest document chunks
+    # 1. Ingest document chunks (prefer real-world NIST standard if available)
     store = HermeticMemoryRetrievalStore()
-    chunker = DocumentChunkingService(config=ChunkingConfig(max_chars=400, overlap_chars=50))
-    doc = Document(
-        source_uri="file:///policies/access_control_standard.md",
-        source_format=SourceFormat.MARKDOWN,
-        title="Access Control & Privilege Standard",
-        content_text=(
-            "# Access Control Standard\n\n"
-            "## Section 2: Emergency Elevation\n"
-            "Emergency privilege escalation requires formal dual-key authorization from the Incident Commander "
-            "and CISO on-call. All elevated sessions are recorded and capped at 2 hours maximum duration."
-        ),
-    )
+    chunker = DocumentChunkingService(config=ChunkingConfig(max_chars=500, overlap_chars=60))
+    nist_path = Path(__file__).parent.parent / "tests" / "fixtures" / "corpora" / "nist_sp800_53_access_control.md"
+    if nist_path.exists():
+        doc = Document(
+            source_uri="file:///compliance/nist_sp800_53_rev5.md",
+            source_format=SourceFormat.MARKDOWN,
+            title="NIST SP 800-53 Rev 5 - Access Control and Identification",
+            content_text=nist_path.read_text(encoding="utf-8"),
+            metadata={"framework": "NIST", "standard": "SP-800-53", "revision": 5},
+        )
+        query = "What are the requirements for multi-factor authentication (MFA) and inactive account disabling under NIST SP 800-53?"
+        print(f"\n[Turn 1] Ingested real-world NIST SP 800-53 Rev 5 compliance standard ({len(doc.content_text)} chars)")
+    else:
+        doc = Document(
+            source_uri="file:///policies/access_control_standard.md",
+            source_format=SourceFormat.MARKDOWN,
+            title="Access Control & Privilege Standard",
+            content_text=(
+                "# Access Control Standard\n\n"
+                "## Section 2: Emergency Elevation\n"
+                "Emergency privilege escalation requires formal dual-key authorization from the Incident Commander "
+                "and CISO on-call. All elevated sessions are recorded and capped at 2 hours maximum duration."
+            ),
+        )
+        query = "What is the procedure for emergency privilege escalation?"
     chunks = chunker.chunk_document(doc)
 
     # 2. OpenRouter Embedding Provider Setup
-    print(f"\n[Turn 1] Generating OpenRouter vector embeddings with '{embed_model}'...")
+    print(f"\n[Turn 2] Generating OpenRouter vector embeddings with '{embed_model}'...")
     chunk_embeddings = None
     embedding_provider: Any
     try:
@@ -403,12 +418,11 @@ def run_openrouter_smoke_test(
     store.add_document(doc, chunks, tenant_id="security-ops", embeddings=chunk_embeddings)
     pipeline = RetrievalPipeline(retrieval_store=store, embedding_provider=embedding_provider)
 
-    query = "What is the procedure for emergency privilege escalation?"
     package, trace = pipeline.retrieve_with_trace(query_text=query, tenant_id="security-ops")
     print(f"   ✓ Strategy: {trace.strategy} (lexical={trace.lexical_count}, vector={trace.vector_count})")
     evidence_text = "\n\n".join(f"[{item.citation_source}]: {item.snippet}" for item in package.items)
 
-    print(f"\n[Turn 2] Retrieved {len(package.items)} evidence passages for query: \"{query}\"")
+    print(f"\n[Turn 3] Retrieved {len(package.items)} evidence passages for query: \"{query}\"")
 
     # 3. Query OpenRouter with grounded evidence
     prompt = (

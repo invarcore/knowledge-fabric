@@ -71,7 +71,7 @@ Most enterprise AI initiatives stall not because of model capability, but becaus
 | **Forced Database Sprawl**: Introducing specialized vector databases requires separate VPC peering, backup regimes, and $2,000–$10,000/mo in dedicated infrastructure. | **Runs on your existing PostgreSQL**: Combines `pgvector` HNSW with PostgreSQL full-text search (`tsvector`) in a single ACID database. Zero new infrastructure to operate. |
 | **Naive Cosine Search Misses Exact Terms**: Pure vector search frequently misses critical error codes, IDs, SKUs, drug names, and legal terms. | **Hybrid RRF + Neural Reranking**: Reciprocal Rank Fusion (k=60) merges BM25 lexical precision with dense vector semantics, refined by local cross-encoders. |
 | **Cross-Tenant Data Contamination**: Naive vector stores expose all chunks globally, risking cross-tenant data leakage in multi-tenant SaaS. | **Dual-Mode Multi-Tenancy**: Application-level tenant isolation by default, plus opt-in **PostgreSQL Row-Level Security (RLS)** for HIPAA and SOC 2 compliance. |
-| **Vendor API Lock-In & Recurring Cost**: Cloud frameworks default to proprietary embedding APIs, risking breaking changes and per-token fees. | **100% Local & Open by Default**: Ollama & `sentence-transformers` run offline and free on CPU/GPU. OpenAI and Cohere are drop-in alternatives. |
+| **Vendor API Lock-In & Recurring Cost**: Cloud frameworks default to proprietary embedding APIs, risking breaking changes and per-token fees. | **100% Local & Open by Default**: Ollama & `sentence-transformers` run offline and free on CPU/GPU. OpenRouter, OpenAI, and Cohere are drop-in alternatives. |
 | **Framework Monoliths**: LlamaIndex and LangChain force you into proprietary prompt abstraction libraries. | **Clean FastMCP Boundary**: Exposes retrieval as a standard Model Context Protocol (MCP) server that any agent or framework can consume. |
 
 ---
@@ -94,7 +94,7 @@ flowchart TB
     subgraph Ingestion ["1. INGESTION PIPELINE"]
         Sources["Enterprise Docs\n(MD, PDF, DOCX, HTML)"] --> Tika["Apache Tika\n(Text Extraction)"]
         Tika --> Chunker["Document Chunker\n(Sliding Window)"]
-        Chunker --> Embedder["Embedding Provider\n(Ollama / OpenAI / Cohere)"]
+        Chunker --> Embedder["Embedding Provider\n(Ollama / OpenRouter / OpenAI / Cohere)"]
     end
 
     subgraph Storage ["2. POSTGRESQL + PGVECTOR"]
@@ -344,7 +344,10 @@ python examples/04-end-to-end-with-intent/run.py
 
 ## 🧪 Testing & Verification
 
-Knowledge Fabric enforces rigorous test coverage ($\ge 90\%$), strict multi-tenant isolation, and end-to-end live verification:
+Knowledge Fabric enforces rigorous test coverage ($\ge 90\%$), strict multi-tenant isolation, and a zero-live-HTTP CI architecture:
+
+- **Tier 1 (Golden Corpus Fixtures)**: NIST Special Publication 800-53 Rev 5 control catalog fixtures checked into `tests/fixtures/corpora/` for deterministic, offline, sub-second CI validation.
+- **Tier 2 (Opt-in Live Harness)**: Live cloud retrieval verification against OpenRouter (`benchmarks/live_retrieval_smoke_test.py --openrouter`).
 
 ### 1. Run Complete Test Suite with Coverage Gate
 ```bash

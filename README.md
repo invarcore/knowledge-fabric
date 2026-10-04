@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/invarcore/knowledge-fabric/actions"><img src="https://github.com/invarcore/knowledge-fabric/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
+  <a href="https://invarcore.com"><img src="https://img.shields.io/badge/Website-invarcore.com-0284C7?logo=googlechrome&logoColor=white" alt="Invarcore Website"></a>
   <a href="https://github.com/invarcore/knowledge-fabric/actions"><img src="https://img.shields.io/badge/Coverage-94%25-brightgreen.svg" alt="Coverage: 94%"></a>
   <a href="https://github.com/invarcore/knowledge-fabric/releases"><img src="https://img.shields.io/badge/Release-v0.1.1-blue.svg" alt="Release"></a>
   <a href="https://codespaces.new/invarcore/knowledge-fabric"><img src="https://github.com/codespaces/badge.svg" alt="Open in GitHub Codespaces"></a>
@@ -382,6 +383,17 @@ We welcome community contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md
 ## Security
 
 Please report security issues responsibly. See [SECURITY.md](SECURITY.md) for our vulnerability disclosure policy.
+
+---
+
+## 🏛️ Invarcore Verification Fabric
+
+This engine is part of the **[Invarcore](https://invarcore.com)** enterprise verification fabric. Invarcore develops mathematical invariants, cryptographic policy contracts, and execution runtimes for autonomous AI systems.
+
+* **Official Website & Architecture**: [https://invarcore.com](https://invarcore.com)
+* **Technical Whitepapers & Invariant Specs**: [https://invarcore.com/#whitepapers](https://invarcore.com/#whitepapers)
+* **GitHub Organization**: [https://github.com/invarcore](https://github.com/invarcore)
+* **Security & Vulnerability Disclosure**: [security@invarcore.com](mailto:security@invarcore.com)
 
 ## License
 

@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Database access and schema bootstrap."""
 
 from knowledge_fabric.db.audit import AuditLogger

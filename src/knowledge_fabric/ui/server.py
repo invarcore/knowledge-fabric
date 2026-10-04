@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Lightweight HTTP server for Knowledge Fabric & Intent Fabric Admin UI."""
 
 from __future__ import annotations

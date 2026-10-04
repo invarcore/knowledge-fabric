@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Persistence helpers for documents and chunks."""
 
 from __future__ import annotations

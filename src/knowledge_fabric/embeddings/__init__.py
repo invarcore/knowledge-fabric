@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Embedding provider abstraction."""
 
 from knowledge_fabric.embeddings.providers import (

@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Qdrant remote vector database retrieval store adapter.
 
 Enables Knowledge Fabric to query Qdrant clusters over REST API for 50M+ scale,

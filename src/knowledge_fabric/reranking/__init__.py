@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Reranking module — pluggable post-retrieval relevance scoring.
 
 Three implementations are provided:

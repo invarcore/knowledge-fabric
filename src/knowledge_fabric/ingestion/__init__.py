@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Ingestion interfaces and loaders."""
 
 from knowledge_fabric.ingestion.models import Chunk, Document, SourceFormat

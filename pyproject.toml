@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "knowledge-fabric"
 version = "0.1.1"
 description = "MCP-native evidence retrieval platform"
+license = { text = "Apache-2.0" }
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [

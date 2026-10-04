@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Structure-aware chunking service for Markdown, HTML, PDF/pages, and fallback text."""
 
 from __future__ import annotations

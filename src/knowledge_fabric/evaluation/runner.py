@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Evaluation runner for lexical, vector, and hybrid retrieval.
 
 Computes IR benchmark metrics (Recall@K, Precision@K, MRR, NDCG@K, No-result accuracy)

@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Retrieval evaluation helpers and quality gate runner."""
 
 from knowledge_fabric.evaluation.runner import (

@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Embedding provider interfaces and real implementations."""
 
 from __future__ import annotations

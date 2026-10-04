@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Data models for ingestion and chunking."""
 
 from __future__ import annotations

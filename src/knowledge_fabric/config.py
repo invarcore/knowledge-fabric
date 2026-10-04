@@ -1,3 +1,6 @@
+# Copyright 2026 Invarcore Organization
+# SPDX-License-Identifier: Apache-2.0
+
 """Configuration loader for Knowledge Fabric runtime components."""
 
 from __future__ import annotations

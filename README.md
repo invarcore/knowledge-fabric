@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sagarv48/knowledge-fabric/actions"><img src="https://github.com/sagarv48/knowledge-fabric/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
-  <a href="https://github.com/sagarv48/knowledge-fabric/actions"><img src="https://img.shields.io/badge/Coverage-94%25-brightgreen.svg" alt="Coverage: 94%"></a>
-  <a href="https://github.com/sagarv48/knowledge-fabric/releases"><img src="https://img.shields.io/badge/Release-v0.1.1-blue.svg" alt="Release"></a>
-  <a href="https://codespaces.new/sagarv48/knowledge-fabric"><img src="https://github.com/codespaces/badge.svg" alt="Open in GitHub Codespaces"></a>
+  <a href="https://github.com/invarcore/knowledge-fabric/actions"><img src="https://github.com/invarcore/knowledge-fabric/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
+  <a href="https://github.com/invarcore/knowledge-fabric/actions"><img src="https://img.shields.io/badge/Coverage-94%25-brightgreen.svg" alt="Coverage: 94%"></a>
+  <a href="https://github.com/invarcore/knowledge-fabric/releases"><img src="https://img.shields.io/badge/Release-v0.1.1-blue.svg" alt="Release"></a>
+  <a href="https://codespaces.new/invarcore/knowledge-fabric"><img src="https://github.com/codespaces/badge.svg" alt="Open in GitHub Codespaces"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Native%20Server-purple.svg" alt="MCP Native"></a>
   <a href="docker-compose.yml"><img src="https://img.shields.io/badge/Docker-Ready-2496ED.svg" alt="Docker Ready"></a>
@@ -26,7 +26,7 @@
 ### 1. Instant Cloud Sandbox (Zero Local Setup)
 Click to launch a fully configured browser VS Code workspace with PostgreSQL + `pgvector` and Tika running automatically:
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/sagarv48/knowledge-fabric)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/invarcore/knowledge-fabric)
 
 ### 2. Connect to Claude Desktop or Cursor (MCP)
 Give Claude Desktop or Cursor private, local long-term memory over your enterprise codebase and documents. Add this to your `claude_desktop_config.json`:
@@ -39,7 +39,7 @@ Give Claude Desktop or Cursor private, local long-term memory over your enterpri
       "args": [
         "run", "-i", "--rm",
         "-e", "DATABASE_URL=postgresql://knowledge_fabric:knowledge_fabric@host.docker.internal:5432/knowledge_fabric",
-        "ghcr.io/sagarv48/knowledge-fabric:0.1.1",
+        "ghcr.io/invarcore/knowledge-fabric:0.1.1",
         "knowledge-fabric-mcp"
       ]
     }
@@ -49,7 +49,7 @@ Give Claude Desktop or Cursor private, local long-term memory over your enterpri
 
 ### 3. Run Locally with Docker Compose (60 Seconds)
 ```bash
-git clone https://github.com/sagarv48/knowledge-fabric.git && cd knowledge-fabric
+git clone https://github.com/invarcore/knowledge-fabric.git && cd knowledge-fabric
 docker compose up -d
 
 # Run the interactive hybrid RRF demonstration
@@ -141,7 +141,7 @@ uvx knowledge-fabric-mcp
 Spin up the entire multi-tenant stack (PostgreSQL + pgvector, Apache Tika, and Admin UI) in seconds:
 ```bash
 # Clone or download docker-compose.prod.yml
-curl -sSL https://raw.githubusercontent.com/sagarv48/knowledge-fabric/main/docker-compose.prod.yml -o docker-compose.yml
+curl -sSL https://raw.githubusercontent.com/invarcore/knowledge-fabric/main/docker-compose.prod.yml -o docker-compose.yml
 
 # Start full platform with pgvector and Tika
 docker compose up -d
@@ -153,11 +153,11 @@ docker compose up -d
 Helm chart packaging is planned. For now, deploy the Docker image directly to your cluster using standard Kubernetes `Deployment` + `Service` manifests, pointing to your external RDS / Cloud SQL instance.
 
 > [!NOTE]
-> The `helm install oci://ghcr.io/sagarv48/charts/knowledge-fabric` command shown in earlier versions targets a Helm OCI registry that has not yet been published. Watch the [releases page](https://github.com/sagarv48/knowledge-fabric/releases) for the first official Helm chart release.
+> The `helm install oci://ghcr.io/invarcore/charts/knowledge-fabric` command shown in earlier versions targets a Helm OCI registry that has not yet been published. Watch the [releases page](https://github.com/invarcore/knowledge-fabric/releases) for the first official Helm chart release.
 
 ### 🛠️ Pathway 4: Local Contributor Setup
 ```bash
-git clone https://github.com/sagarv48/knowledge-fabric.git
+git clone https://github.com/invarcore/knowledge-fabric.git
 cd knowledge-fabric
 python3 -m pip install -e ".[reranking,dev]"
 docker compose up -d postgres tika

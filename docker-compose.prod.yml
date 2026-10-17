@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
 
   app:
-    image: ghcr.io/sagarv48/knowledge-fabric:v0.1.1
+    image: ghcr.io/invarcore/knowledge-fabric:v0.1.1
     container_name: knowledge-fabric-app
     ports:
       - "127.0.0.1:8080:8080"
@@ -58,7 +58,7 @@ services:
     restart: unless-stopped
 
   mcp:
-    image: ghcr.io/sagarv48/knowledge-fabric:v0.1.1
+    image: ghcr.io/invarcore/knowledge-fabric:v0.1.1
     container_name: knowledge-fabric-mcp
     command: ["knowledge-fabric-mcp"]
     ports:

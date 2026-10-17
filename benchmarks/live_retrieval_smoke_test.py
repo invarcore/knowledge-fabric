@@ -435,7 +435,7 @@ def run_openrouter_smoke_test(
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/sagarv48/knowledge-fabric",
+        "HTTP-Referer": "https://github.com/invarcore/knowledge-fabric",
         "X-Title": "Knowledge Fabric Smoke Test",
     }
     payload = {

@@ -125,8 +125,8 @@ jobs:
 
       - name: Build & Load Docker Image into KinD
         run: |
-          docker build -t ghcr.io/sagarv48/knowledge-fabric:v0.1.1 .
-          kind load docker-image ghcr.io/sagarv48/knowledge-fabric:v0.1.1 --name fabric-test
+          docker build -t ghcr.io/invarcore/knowledge-fabric:v0.1.1 .
+          kind load docker-image ghcr.io/invarcore/knowledge-fabric:v0.1.1 --name fabric-test
 
       - name: Deploy Knowledge Fabric via Helm
         run: |

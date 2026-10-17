@@ -2,7 +2,7 @@
 
 > **Give your AI agents access to corporate knowledge — without giving them access to everything.**
 
-[![Status](https://img.shields.io/badge/Architecture-Zero--Trust%20RAG-blue.svg)](https://github.com/sagarv48/knowledge-fabric)
+[![Status](https://img.shields.io/badge/Architecture-Zero--Trust%20RAG-blue.svg)](https://github.com/invarcore/knowledge-fabric)
 [![Gateway](https://img.shields.io/badge/Gateway-cMCP%20%28Confidential%20MCP%29-green.svg)](https://github.com/agentrust-io/cmcp)
 [![Policy](https://img.shields.io/badge/Policy%20Engine-AWS%20Cedar-orange.svg)](https://www.cedarpolicy.com/)
 [![Audit](https://img.shields.io/badge/Audit-TRACE%20Claims%20%28Signed%29-purple.svg)](https://agentrust-io.com/)
@@ -276,4 +276,4 @@ For production deployments:
 * [Knowledge Fabric Core Documentation](../../README.md)
 * [cMCP (Confidential Model Context Protocol) Specification](https://github.com/agentrust-io/cmcp)
 * [AWS Cedar Policy Language Specification](https://www.cedarpolicy.com/)
-* [Intent Fabric Multi-Agent Governance](https://github.com/sagarv48/intent-fabric)
+* [Intent Fabric Multi-Agent Governance](https://github.com/invarcore/intent-fabric)

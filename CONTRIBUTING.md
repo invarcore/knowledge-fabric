@@ -23,7 +23,7 @@ architecture, and conventions to follow.
 
 ```bash
 # Clone and install
-git clone https://github.com/sagarv48/knowledge-fabric.git
+git clone https://github.com/invarcore/knowledge-fabric.git
 cd knowledge-fabric
 pip install uv
 uv sync --all-extras

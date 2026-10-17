@@ -6,7 +6,7 @@
 
 **Author:** Vinay Kumar Ksheera Sagar
 
-**Target Repositories:** sagarv48/knowledge-fabric, sagarv48/intent-fabric, sagarv48/knowledge-fabric-enterprise-adapters
+**Target Repositories:** invarcore/knowledge-fabric, invarcore/intent-fabric, invarcore/knowledge-fabric-enterprise-adapters
 
 **Classification:** Technical Architecture Specification
 

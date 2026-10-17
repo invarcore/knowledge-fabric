@@ -415,7 +415,7 @@ class OpenRouterEmbeddingProvider:
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {self._api_key}",
-                "HTTP-Referer": "https://github.com/sagarv48/knowledge-fabric",
+                "HTTP-Referer": "https://github.com/invarcore/knowledge-fabric",
                 "X-Title": "Knowledge Fabric",
             },
             method="POST",

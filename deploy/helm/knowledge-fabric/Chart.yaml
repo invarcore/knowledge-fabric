@@ -11,10 +11,10 @@ keywords:
   - mcp
   - pgvector
   - enterprise-ai
-home: https://github.com/sagarv48/knowledge-fabric
+home: https://github.com/invarcore/knowledge-fabric
 sources:
-  - https://github.com/sagarv48/knowledge-fabric
-  - https://github.com/sagarv48/intent-fabric
+  - https://github.com/invarcore/knowledge-fabric
+  - https://github.com/invarcore/intent-fabric
 maintainers:
-  - name: sagarv48
-    email: maintainers@knowledge-fabric.dev
+  - name: invarcore
+    email: maintainers@invarcore.com

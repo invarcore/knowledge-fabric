@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/sagarv48/knowledge-fabric
+  repository: ghcr.io/invarcore/knowledge-fabric
   pullPolicy: IfNotPresent
   tag: "v0.1.1"
 

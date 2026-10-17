@@ -241,9 +241,9 @@ class PostgresRetrievalStore:
         connection = self._connection_factory()
         with connection.cursor() as cursor:
             # Mode 2 (RLS): set session variable so Postgres RLS policies fire.
-            # This is a no-op if RLS is not enabled on the table.
-            if tenant_id is not None:
-                cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [tenant_id])
+            # If tenant_id is None, set to empty string to ensure fail-closed isolation.
+            effective_session_tenant = tenant_id if tenant_id is not None else ""
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_session_tenant])
             cursor.execute(sql, params)
             rows = cursor.fetchall()
         return rows

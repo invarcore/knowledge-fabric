@@ -42,8 +42,8 @@ jobs:
       KF_DB_HOST: localhost
       KF_DB_PORT: 5432
       KF_DB_NAME: knowledge_fabric_test
-      KF_DB_USER: knowledge_fabric
-      KF_DB_PASSWORD: test_password
+      KF_DB_USER: kf_app
+      KF_DB_PASSWORD: kf_app_password
       EMBEDDING_PROVIDER: mock
 
     steps:
@@ -66,7 +66,10 @@ jobs:
           PGPASSWORD=test_password psql -h localhost -U knowledge_fabric -d knowledge_fabric_test \
             -f db/schema/001_extensions.sql \
             -f db/schema/002_core_tables.sql \
-            -f db/schema/003_multi_tenancy.sql
+            -f db/schema/003_multi_tenancy.sql \
+            -f db/schema/004_dimension_guard.sql \
+            -f db/schema/005_partitioning_and_hnsw.sql \
+            -f db/schema/006_application_role.sql
 
       - name: Lint (ruff)
         run: uv run ruff check .

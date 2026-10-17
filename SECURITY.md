@@ -32,4 +32,5 @@ Knowledge Fabric provides configurable security guardrails that adapt to differe
 | `KNOWLEDGE_MAX_TOP_K` | `100` | Maximum `top_k` results returned by lexical/vector search. Prevents unbounded payload sizes and out-of-memory errors. |
 | `KNOWLEDGE_MAX_RERANK_CANDIDATES` | `100` | Maximum candidate pool evaluated by cross-encoder rerankers before returning top hits. Protects CPU/GPU from compute spikes. |
 | `KNOWLEDGE_STRICT_TENANT_CHECK` | `true` | Enforces safe tenant namespace syntax (`^[a-zA-Z0-9_.:@-]{1,128}$`). Set to `false` if custom internal naming schemes are required. |
+| `KNOWLEDGE_ENFORCE_NON_SUPERUSER` | `true` | Restricts database connection roles to dedicated least-privilege non-superusers (e.g. `kf_app`) to enforce PostgreSQL Row-Level Security (KF-01). Set to `false` to permit superusers for migrations/admin tooling. |
 

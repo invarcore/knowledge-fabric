@@ -7,8 +7,9 @@ database:
   host: localhost
   port: 5432
   name: knowledge_fabric
-  user: knowledge_fabric
-  password: ""
+  # Dedicated least-privilege tenant role to strictly enforce RLS (KF-01)
+  user: kf_app
+  password: kf_app_password
 
 tika:
   endpoint: http://localhost:9998

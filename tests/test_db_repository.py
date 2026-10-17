@@ -57,7 +57,8 @@ def test_upsert_document_returns_id() -> None:
     document_id = repository.upsert_document(document)
 
     assert document_id == 77
-    assert "INSERT INTO documents" in cursor.executions[0][0]
+    assert any("INSERT INTO documents" in e[0] for e in cursor.executions)
+    assert any("set_config('app.tenant_id'" in e[0] for e in cursor.executions)
     assert connection.commit_calls == 1
 
 
@@ -73,8 +74,9 @@ def test_replace_chunks_writes_all_chunks() -> None:
     inserted = repository.replace_chunks(document_id=1, chunks=chunks)
 
     assert inserted == 2
-    assert "DELETE FROM chunks" in cursor.executions[0][0]
-    assert len(cursor.executions) == 3
+    assert any("DELETE FROM chunks" in e[0] for e in cursor.executions)
+    assert any("set_config('app.tenant_id'" in e[0] for e in cursor.executions)
+    assert len(cursor.executions) == 4  # set_config + DELETE + 2 INSERTs
     assert connection.commit_calls == 1
 
 
@@ -103,8 +105,10 @@ def test_upsert_document_with_tenant_id() -> None:
     doc_id = repository.upsert_document(document, tenant_id="tenant-alpha")
     assert doc_id == 88
     # Last param in INSERT is tenant_id
-    params = cursor.executions[0][1]
-    assert params[-1] == "tenant-alpha"
+    insert_exec = [e for e in cursor.executions if "INSERT INTO documents" in e[0]][0]
+    assert insert_exec[1][-1] == "tenant-alpha"
+    set_config_exec = [e for e in cursor.executions if "set_config" in e[0]][0]
+    assert set_config_exec[1] == ["tenant-alpha"]
 
 
 def test_replace_chunks_with_tenant_id() -> None:
@@ -115,9 +119,10 @@ def test_replace_chunks_with_tenant_id() -> None:
     chunks = [Chunk(document_uri="memory://doc", chunk_index=0, chunk_text="a", metadata={})]
     repository.replace_chunks(document_id=1, chunks=chunks, tenant_id="tenant-beta")
 
-    # The chunk INSERT is execution index 1
-    insert_params = cursor.executions[1][1]
-    assert insert_params[-1] == "tenant-beta"
+    chunk_inserts = [e for e in cursor.executions if "INSERT INTO chunks" in e[0]]
+    assert chunk_inserts[0][1][-1] == "tenant-beta"
+    set_config_exec = [e for e in cursor.executions if "set_config" in e[0]][0]
+    assert set_config_exec[1] == ["tenant-beta"]
 
 
 def test_delete_document_by_id_scoped_to_tenant() -> None:

@@ -24,6 +24,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Normalized Tika endpoint URL handling to prevent duplicate `/tika/tika` paths.
 - Bound all Docker Compose ports to loopback (`127.0.0.1`) to eliminate public interface exposure.
 
+### Security
+- Enforced non-superuser connection roles (`kf_app`) in `create_postgres_connection_factory` with static and dynamic `is_superuser` validation (KF-01).
+- Enforced fail-closed session tenant isolation in `_fetch_rows`, `upsert_document`, and `replace_chunks`, ensuring unauthenticated or cross-tenant queries return empty under RLS.
+- Added comprehensive RLS isolation test suite `tests/test_rls_isolation.py`.
+
+
 ## [0.1.1] - 2026-09-06
 
 ### Added

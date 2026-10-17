@@ -104,10 +104,14 @@ def load_settings(path: str | Path = "config/settings.yaml") -> Settings:
         db_raw["port"] = int(os.environ.get("KF_DB_PORT") or os.environ.get("POSTGRES_PORT") or 5432)
     if os.environ.get("KF_DB_NAME") or os.environ.get("POSTGRES_DB"):
         db_raw["name"] = os.environ.get("KF_DB_NAME") or os.environ.get("POSTGRES_DB")
-    if os.environ.get("KF_DB_USER") or os.environ.get("POSTGRES_USER"):
-        db_raw["user"] = os.environ.get("KF_DB_USER") or os.environ.get("POSTGRES_USER")
-    if "KF_DB_PASSWORD" in os.environ or "POSTGRES_PASSWORD" in os.environ:
-        db_raw["password"] = os.environ.get("KF_DB_PASSWORD") or os.environ.get("POSTGRES_PASSWORD", "")
+    if os.environ.get("KF_DB_USER"):
+        db_raw["user"] = os.environ.get("KF_DB_USER")
+    elif os.environ.get("POSTGRES_USER"):
+        db_raw["user"] = os.environ.get("POSTGRES_USER")
+    if "KF_DB_PASSWORD" in os.environ:
+        db_raw["password"] = os.environ.get("KF_DB_PASSWORD")
+    elif "POSTGRES_PASSWORD" in os.environ:
+        db_raw["password"] = os.environ.get("POSTGRES_PASSWORD", "")
 
     # Tika env overrides
     if os.environ.get("TIKA_ENDPOINT"):
@@ -137,8 +141,8 @@ def load_settings(path: str | Path = "config/settings.yaml") -> Settings:
             host=str(db_raw.get("host", "localhost")),
             port=int(db_raw.get("port", 5432)),
             name=str(db_raw.get("name", "knowledge_fabric")),
-            user=str(db_raw.get("user", "knowledge_fabric")),
-            password=str(db_raw.get("password", "")),
+            user=str(db_raw.get("user", "kf_app")),
+            password=str(db_raw.get("password", "kf_app_password")),
         ),
         tika=TikaSettings(
             endpoint=str(tika_raw.get("endpoint", "http://localhost:9998")),

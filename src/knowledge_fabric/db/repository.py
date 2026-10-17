@@ -22,8 +22,12 @@ class KnowledgeRepository:
 
     def upsert_document(self, document: Document, *, tenant_id: str = "default") -> int:
         """Insert or update a document and return its database id."""
+        from knowledge_fabric.retrieval.pipeline import validate_tenant_id
+
+        effective_tenant = validate_tenant_id(tenant_id) or "default"
         connection = self._connection_factory()
         with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
             cursor.execute(
                 """
                 INSERT INTO documents (source_uri, source_type, title, metadata, content_text, tenant_id)
@@ -44,7 +48,7 @@ class KnowledgeRepository:
                     document.title,
                     _to_json(document.metadata),
                     document.content_text,
-                    tenant_id,
+                    effective_tenant,
                 ],
             )
             row = cursor.fetchone()
@@ -66,8 +70,12 @@ class KnowledgeRepository:
         if embeddings is not None and len(embeddings) != len(chunks):
             raise ValueError("embeddings length must match chunks length")
 
+        from knowledge_fabric.retrieval.pipeline import validate_tenant_id
+
+        effective_tenant = validate_tenant_id(tenant_id) or "default"
         connection = self._connection_factory()
         with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
             cursor.execute("DELETE FROM chunks WHERE document_id = %s", [document_id])
 
             for index, chunk in enumerate(chunks):
@@ -86,7 +94,7 @@ class KnowledgeRepository:
                         chunk.chunk_text,
                         _to_json(chunk.metadata),
                         embedding_literal,
-                        tenant_id,
+                        effective_tenant,
                     ],
                 )
 
@@ -205,6 +213,8 @@ class KnowledgeRepository:
         with connection.cursor() as cursor:
             if effective_tenant is not None:
                 cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
+            else:
+                cursor.execute("SELECT set_config('app.tenant_id', '', true)")
 
             where_clause = "WHERE c.id = %s"
             params: list[Any] = [chunk_id]

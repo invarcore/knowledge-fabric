@@ -25,7 +25,8 @@ services:
       KF_DB_HOST: postgres
       KF_DB_PORT: "5432"
       KF_DB_NAME: knowledge_fabric
-      KF_DB_USER: knowledge_fabric
+      KF_DB_USER: kf_app
+      KF_DB_PASSWORD: kf_app_password
       EMBEDDING_PROVIDER: mock
       TIKA_ENDPOINT: ""
     depends_on:

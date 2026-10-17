@@ -43,8 +43,8 @@ services:
       KF_DB_HOST: postgres
       KF_DB_PORT: "5432"
       KF_DB_NAME: ${POSTGRES_DB:-knowledge_fabric}
-      KF_DB_USER: ${POSTGRES_USER:-knowledge_fabric}
-      KF_DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+      KF_DB_USER: ${KF_DB_USER:-kf_app}
+      KF_DB_PASSWORD: ${KF_DB_PASSWORD:-kf_app_password}
       TIKA_ENDPOINT: "http://tika:9998"
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -67,8 +67,8 @@ services:
       KF_DB_HOST: postgres
       KF_DB_PORT: "5432"
       KF_DB_NAME: ${POSTGRES_DB:-knowledge_fabric}
-      KF_DB_USER: ${POSTGRES_USER:-knowledge_fabric}
-      KF_DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+      KF_DB_USER: ${KF_DB_USER:-kf_app}
+      KF_DB_PASSWORD: ${KF_DB_PASSWORD:-kf_app_password}
       TIKA_ENDPOINT: "http://tika:9998"
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}

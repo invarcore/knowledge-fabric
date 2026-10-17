@@ -43,7 +43,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      DATABASE_URL: postgresql://kf_user:kf_password@postgres:5432/knowledge_fabric
+      DATABASE_URL: postgresql://kf_app:kf_app_password@postgres:5432/knowledge_fabric
       TIKA_ENDPOINT: http://tika:9998
     depends_on:
       postgres:

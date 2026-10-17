@@ -32,6 +32,30 @@ services:
       timeout: 5s
       retries: 5
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: knowledge-fabric-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      KF_DB_HOST: postgres
+      KF_DB_PORT: "5432"
+      KF_DB_NAME: knowledge_fabric
+      KF_DB_USER: kf_app
+      KF_DB_PASSWORD: kf_app_password
+      TIKA_ENDPOINT: "http://tika:9998"
+      EMBEDDING_PROVIDER: mock
+      FABRIC_SIGNING_KEY: dev-secret-signing-key-32bytes-min
+      FABRIC_APPROVAL_ENFORCEMENT: enforce
+    depends_on:
+      postgres:
+        condition: service_healthy
+      tika:
+        condition: service_started
+
   knowledge-mcp:
     build:
       context: .

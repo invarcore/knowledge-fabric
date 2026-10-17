@@ -67,12 +67,9 @@ def _require_tenant(tenant_id: str | None) -> str:
 def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
     """Create MCP server with retrieval tool registration."""
     try:
-        from fastmcp import FastMCP  # pyright: ignore[reportMissingImports]
+        from mcp.server.fastmcp import FastMCP
     except (ImportError, ModuleNotFoundError):
-        try:
-            from mcp.server.fastmcp import FastMCP  # pyright: ignore[reportAttributeAccessIssue, reportMissingImports]
-        except (ImportError, ModuleNotFoundError, AttributeError):
-            from mcp.server.mcpserver import MCPServer as FastMCP  # pyright: ignore[reportAttributeAccessIssue, reportMissingImports]
+        from mcp.server.mcpserver import MCPServer as FastMCP
 
     server = FastMCP("knowledge-fabric")
 
@@ -194,28 +191,6 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         return tools.check_consistency(tenant_id=effective_tenant)
 
     return server
-
-
-def _build_default_server() -> Any:
-    try:
-        settings = load_settings()
-        tools = build_tools_from_settings(settings)
-        return create_mcp_server(tools)
-    except Exception as exc:
-        logger.debug("Deferred FastMCP server initialization: %s", exc)
-        try:
-            from fastmcp import FastMCP  # pyright: ignore[reportMissingImports]
-        except (ImportError, ModuleNotFoundError):
-            try:
-                from mcp.server.fastmcp import FastMCP  # pyright: ignore[reportAttributeAccessIssue, reportMissingImports]
-            except (ImportError, ModuleNotFoundError, AttributeError):
-                from mcp.server.mcpserver import MCPServer as FastMCP  # pyright: ignore[reportAttributeAccessIssue, reportMissingImports]
-        return FastMCP("knowledge-fabric")
-
-
-server = _build_default_server()
-mcp = server
-app = server
 
 
 def run_mcp_server(settings_path: str = "config/settings.yaml") -> None:

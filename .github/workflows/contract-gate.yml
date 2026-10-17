@@ -18,7 +18,7 @@ jobs:
       - name: Check out Sibling Repository (Public)
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository == 'sagarv48/knowledge-fabric' && 'sagarv48/intent-fabric' || 'sagarv48/knowledge-fabric' }}
+          repository: ${{ github.repository == 'invarcore/knowledge-fabric' && 'invarcore/intent-fabric' || 'invarcore/knowledge-fabric' }}
           path: sibling
 
       - name: Install Astral uv

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.invarcore/knowledge-fabric",
+  "title": "Knowledge Fabric",
+  "description": "Multi-tenant hybrid RAG & evidence verification MCP server enforcing PostgreSQL RLS.",
+  "version": "0.1.1",
+  "repository": {
+    "url": "https://github.com/invarcore/knowledge-fabric",
+    "source": "github"
+  },
+  "websiteUrl": "https://invarcore.com",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "knowledge-fabric",
+      "version": "0.1.1",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

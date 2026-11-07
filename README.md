@@ -4,6 +4,8 @@
 
 # Knowledge Fabric
 
+<!-- mcp-name: io.github.invarcore/knowledge-fabric -->
+
 <p align="center">
   <strong>Vendor-neutral, governance-first evidence retrieval for AI systems.</strong><br>
   Native PostgreSQL + pgvector &bull; Hybrid RRF Fusion &bull; Cross-Encoder Reranking &bull; Dual-Mode Multi-Tenancy &bull; MCP-Native

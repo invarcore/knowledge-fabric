@@ -27,7 +27,8 @@ FROM python:3.11-slim AS runtime
 LABEL org.opencontainers.image.title="Knowledge Fabric" \
       org.opencontainers.image.description="MCP-native evidence retrieval and knowledge governance platform" \
       org.opencontainers.image.vendor="Knowledge Fabric Contributors" \
-      org.opencontainers.image.licenses="Apache-2.0"
+      org.opencontainers.image.licenses="Apache-2.0" \
+      io.modelcontextprotocol.server.name="io.github.invarcore/knowledge-fabric"
 
 # Install minimal runtime dependencies (libpq for postgres, curl for healthchecks)
 RUN apt-get update && apt-get install -y --no-install-recommends \

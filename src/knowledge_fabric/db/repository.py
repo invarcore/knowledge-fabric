@@ -28,29 +28,59 @@ class KnowledgeRepository:
         connection = self._connection_factory()
         with connection.cursor() as cursor:
             cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
-            cursor.execute(
-                """
-                INSERT INTO documents (source_uri, source_type, title, metadata, content_text, tenant_id)
-                VALUES (%s, %s, %s, %s::jsonb, %s, %s)
-                ON CONFLICT (source_uri)
-                DO UPDATE SET
-                  source_type = EXCLUDED.source_type,
-                  title = EXCLUDED.title,
-                  metadata = EXCLUDED.metadata,
-                  content_text = EXCLUDED.content_text,
-                  tenant_id = EXCLUDED.tenant_id,
-                  updated_at = NOW()
-                RETURNING id
-                """,
-                [
-                    document.source_uri,
-                    document.source_format.value,
-                    document.title,
-                    _to_json(document.metadata),
-                    document.content_text,
-                    effective_tenant,
-                ],
-            )
+            try:
+                cursor.execute(
+                    """
+                    INSERT INTO documents (source_uri, source_type, title, metadata, content_text, tenant_id)
+                    VALUES (%s, %s, %s, %s::jsonb, %s, %s)
+                    ON CONFLICT (tenant_id, source_uri)
+                    DO UPDATE SET
+                      source_type = EXCLUDED.source_type,
+                      title = EXCLUDED.title,
+                      metadata = EXCLUDED.metadata,
+                      content_text = EXCLUDED.content_text,
+                      updated_at = NOW()
+                    RETURNING id
+                    """,
+                    [
+                        document.source_uri,
+                        document.source_format.value,
+                        document.title,
+                        _to_json(document.metadata),
+                        document.content_text,
+                        effective_tenant,
+                    ],
+                )
+            except Exception as exc:
+                # Fallback for unmigrated legacy schemas where UNIQUE(tenant_id, source_uri) index is not yet present
+                err_msg = str(exc).lower()
+                if "tenant_id" in err_msg or "42p10" in err_msg or "unique" in err_msg or "conflict" in err_msg:
+                    cursor.execute(
+                        """
+                        INSERT INTO documents (source_uri, source_type, title, metadata, content_text, tenant_id)
+                        VALUES (%s, %s, %s, %s::jsonb, %s, %s)
+                        ON CONFLICT (source_uri)
+                        DO UPDATE SET
+                          source_type = EXCLUDED.source_type,
+                          title = EXCLUDED.title,
+                          metadata = EXCLUDED.metadata,
+                          content_text = EXCLUDED.content_text,
+                          tenant_id = EXCLUDED.tenant_id,
+                          updated_at = NOW()
+                        RETURNING id
+                        """,
+                        [
+                            document.source_uri,
+                            document.source_format.value,
+                            document.title,
+                            _to_json(document.metadata),
+                            document.content_text,
+                            effective_tenant,
+                        ],
+                    )
+                else:
+                    raise
+
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Failed to upsert document")

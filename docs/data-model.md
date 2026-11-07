@@ -12,7 +12,7 @@ Knowledge Fabric acts as the *librarian* of the AI assistant ecosystem. It provi
 
 ### Core Data Invariants:
 1. **Source Provenance:** Every chunk maintains a strict foreign key relationship back to its parent document (`chunks.document_id REFERENCES documents(id) ON DELETE CASCADE`).
-2. **Idempotent Document Ingestion:** Documents are uniquely identified by their canonical `source_uri`. Re-ingesting an unchanged or updated source item performs an idempotent upsert (`ON CONFLICT (source_uri) DO UPDATE`) and atomic chunk replacement.
+2. **Idempotent Document Ingestion:** Documents are uniquely identified per tenant by their composite `(tenant_id, source_uri)`. Re-ingesting an unchanged or updated source item performs an idempotent upsert (`ON CONFLICT (tenant_id, source_uri) DO UPDATE`) and atomic chunk replacement without cross-tenant collisions.
 3. **Cascading Clean Deletion:** Deleting a document predictably removes all derived chunks, tsvector indexes, and vector embeddings without leaving orphaned retrieval units in the database.
 4. **Tenant Isolation:** Every primary data and operational table (`documents`, `chunks`, `retrieval_runs`, `audit_events`) carries a `tenant_id` column with composite indexing (`idx_documents_tenant_source`).
 5. **Dual-Mode Security Isolation:**
@@ -29,7 +29,7 @@ Knowledge Fabric acts as the *librarian* of the AI assistant ecosystem. It provi
 │                          documents                          │
 ├─────────────────────────────────────────────────────────────┤
 │ id: BIGSERIAL PRIMARY KEY                                   │
-│ source_uri: TEXT NOT NULL UNIQUE                            │
+│ source_uri: TEXT NOT NULL                                   │
 │ source_type: TEXT NOT NULL                                  │
 │ title: TEXT                                                 │
 │ metadata: JSONB NOT NULL DEFAULT '{}'                       │
@@ -37,6 +37,7 @@ Knowledge Fabric acts as the *librarian* of the AI assistant ecosystem. It provi
 │ tenant_id: TEXT NOT NULL DEFAULT 'default'                  │
 │ created_at: TIMESTAMPTZ NOT NULL DEFAULT NOW()              │
 │ updated_at: TIMESTAMPTZ NOT NULL DEFAULT NOW()              │
+│ UNIQUE (tenant_id, source_uri)                              │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                │ 1 : N (ON DELETE CASCADE)

@@ -42,7 +42,8 @@ Give Claude Desktop or Cursor private, local long-term memory over your enterpri
       "args": [
         "run", "-i", "--rm",
         "-e", "DATABASE_URL=postgresql://knowledge_fabric:knowledge_fabric@host.docker.internal:5432/knowledge_fabric",
-        "ghcr.io/invarcore/knowledge-fabric:0.1.1",
+        "-e", "KF_DEFAULT_TENANT=default",
+        "ghcr.io/invarcore/knowledge-fabric:0.1.3",
         "knowledge-fabric-mcp"
       ]
     }
@@ -226,7 +227,7 @@ Knowledge Fabric exposes standard MCP tools for LLMs, desktop assistants, and wo
 
 | Tool Name | Parameters | Description |
 | :--- | :--- | :--- |
-| `retrieve_evidence` | `query_text` (str), `tenant_id` (str\|null), `top_k` (int), `source_type` (str\|null), `trace_id` (str\|null), `mode` (str: `hybrid`\|`lexical`\|`vector`) | Executes retrieval (hybrid RRF, lexical full-text, or semantic vector) and returns structured evidence package with citations, per-leg health, and relevance scores. |
+| `retrieve_evidence` | `query_text` (str), `tenant_id` (str\|null), `top_k` (int), `source_type` (str\|null), `trace_id` (str\|null), `mode` (str: `hybrid`\|`lexical`\|`vector`), `format` (str: `json`\|`compact`\|`markdown`) | Executes retrieval (hybrid RRF, lexical full-text, or semantic vector) and returns structured evidence package with citations, per-leg health, and relevance scores. Supports `format='markdown'` for token-efficient citations and `format='compact'` to omit wire duplication. |
 | `get_evidence` | `chunk_id` (int), `tenant_id` (str\|null) | Retrieves a specific cited chunk by its database ID with complete provenance and metadata. |
 | `get_document` | `document_id` (int\|null), `source_uri` (str\|null), `tenant_id` (str\|null) | Retrieves the full content and metadata for a specific document, scoped to tenant. |
 | `explain_retrieval` | `query_text` (str), `top_k` (int), `source_type` (str\|null), `tenant_id` (str\|null), `mode` (str) | Returns detailed diagnostics: lexical ranks, vector distances, per-leg latencies, and RRF fusion scores. |

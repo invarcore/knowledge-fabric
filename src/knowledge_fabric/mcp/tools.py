@@ -82,6 +82,14 @@ class KnowledgeFabricMCPTools:
         else:
             result["db_status"] = "unknown"
 
+        # Determine overall truthful health status
+        if result.get("db_status") == "error":
+            result["status"] = "error"
+        elif result.get("dimension_check") == "mismatch":
+            result["status"] = "degraded"
+        else:
+            result["status"] = "ok"
+
         return result
 
     def list_sources(self, tenant_id: str | None = None) -> dict[str, object]:
@@ -112,6 +120,7 @@ class KnowledgeFabricMCPTools:
         trace_id: str | None = None,
         tenant_id: str | None = None,
         mode: str = "hybrid",
+        format: str = "json",
     ) -> dict[str, object]:
         package = self._retrieval_pipeline.retrieve_evidence(
             query_text=query_text,
@@ -121,6 +130,19 @@ class KnowledgeFabricMCPTools:
             tenant_id=tenant_id,
             mode=mode,
         )
+        norm_format = (format or "json").lower().strip()
+        if norm_format == "markdown":
+            return {
+                "format": "markdown",
+                "retrieval_id": package.retrieval_id,
+                "tenant_id": package.tenant_id,
+                "query_text": package.query_text,
+                "citations": package.format_citations(),
+                "retrieval_summary": package.retrieval_summary,
+                "provenance_digest": package.provenance_digest,
+            }
+        elif norm_format == "compact":
+            return package.to_dict(compact=True)
         return package.to_dict()
 
     def get_document(

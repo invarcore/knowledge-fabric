@@ -127,7 +127,28 @@ class EvidencePackage:
     tenant_id: str | None = None
     package_signature: str = ""
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self, compact: bool = False) -> dict[str, object]:
+        if compact:
+            return {
+                "retrieval_id": self.retrieval_id,
+                "tenant_id": self.tenant_id,
+                "timestamp_utc": self.generated_at.isoformat(),
+                "query_text": self.query_text,
+                "items": [
+                    {
+                        "chunk_id": item.chunk_id,
+                        "document_uri": item.document_uri,
+                        "heading_path": item.metadata.get("heading_path"),
+                        "snippet": item.snippet,
+                        "score": round(item.score, 4),
+                        "provenance_hash": item.provenance_hash,
+                    }
+                    for item in self.items
+                ],
+                "retrieval_summary": self.retrieval_summary,
+                "provenance_digest": self.provenance_digest,
+                "package_signature": self.package_signature,
+            }
         return {
             "retrieval_id": self.retrieval_id,
             "tenant_id": self.tenant_id,

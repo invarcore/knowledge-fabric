@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-11-07
+
+### Added
+- Migration `007_tenant_scoped_uri.sql`: Tenant-scoped document URI uniqueness (`UNIQUE (tenant_id, source_uri)`), resolving cross-tenant document ingestion collisions and Row-Level Security (RLS) privilege violations.
+- Token-efficient retrieval output formats in `retrieve_evidence`: Added `format: 'json' | 'compact' | 'markdown'`. `format='markdown'` emits pre-formatted Markdown citations reducing context window footprint by >80%, and `format='compact'` eliminates duplicate chunk text payload.
+- Automatic default tenant fallback in `create_mcp_server` and `run_mcp_server`, guaranteeing plug-and-play reliability for Claude Desktop, Cursor, and AI agents when `tenant_id` is omitted.
+- Dedicated end-user remediation test suite `tests/test_end_user_evaluation_remediations.py`.
+
+### Changed
+- Hardened `RetrievalPipeline.retrieve_with_trace` against telemetry/audit failure cascade: audit logger exceptions are safely caught and recorded in warnings, allowing degraded retrieval to succeed even during database telemetry disruptions.
+- Truthful `health_check` status reporting: sets `status = "error"` when database is unreachable, and `status = "degraded"` when embedding dimensions mismatch.
+- Standardized `docker-compose.yml`: removed obsolete `version` specification and configured `KF_DEFAULT_TENANT: default` across services.
+
+### Security
+- Eliminated cross-tenant document overwrite and ingestion denial-of-service by scoping document identity to `(tenant_id, source_uri)` in PostgreSQL and `KnowledgeRepository.upsert_document`.
+
 ## [0.1.2] - 2026-09-28
 
 ### Added

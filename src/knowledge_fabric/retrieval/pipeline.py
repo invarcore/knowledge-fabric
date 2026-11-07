@@ -286,16 +286,20 @@ class RetrievalPipeline:
         )
 
         if self._audit_logger is not None and not skip_audit:
-            self._audit_logger.log_retrieval(
-                query_text=query_text,
-                top_k=top_k,
-                retrieval_mode=effective_strategy,
-                result_count=len(reranked),
-                latency_ms=latency_ms,
-                trace_id=trace_id,
-                tenant_id=safe_tenant,
-                details=self._trace_to_dict(trace),
-            )
+            try:
+                self._audit_logger.log_retrieval(
+                    query_text=query_text,
+                    top_k=top_k,
+                    retrieval_mode=effective_strategy,
+                    result_count=len(reranked),
+                    latency_ms=latency_ms,
+                    trace_id=trace_id,
+                    tenant_id=safe_tenant,
+                    details=self._trace_to_dict(trace),
+                )
+            except Exception as audit_exc:
+                # Do not allow telemetry or audit logging failures to crash degraded retrieval
+                warnings.append(f"audit_logging_failed: {audit_exc}")
         return package, trace
 
     def explain_retrieval(

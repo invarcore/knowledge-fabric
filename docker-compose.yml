@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -46,6 +44,7 @@ services:
       KF_DB_NAME: knowledge_fabric
       KF_DB_USER: kf_app
       KF_DB_PASSWORD: kf_app_password
+      KF_DEFAULT_TENANT: default
       TIKA_ENDPOINT: "http://tika:9998"
       EMBEDDING_PROVIDER: mock
       FABRIC_SIGNING_KEY: dev-secret-signing-key-32bytes-min
@@ -68,6 +67,7 @@ services:
       - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql://kf_app:kf_app_password@postgres:5432/knowledge_fabric
+      KF_DEFAULT_TENANT: default
       TIKA_ENDPOINT: http://tika:9998
     depends_on:
       postgres:

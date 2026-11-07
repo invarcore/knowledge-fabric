@@ -55,8 +55,10 @@ def build_tools_from_settings(settings: Settings) -> KnowledgeFabricMCPTools:
 
 
 
-def _require_tenant(tenant_id: str | None) -> str:
-    effective_tenant = validate_tenant_id(tenant_id or os.environ.get("KF_DEFAULT_TENANT") or None)
+def _require_tenant(tenant_id: str | None, default_tenant: str | None = None) -> str:
+    effective_tenant = validate_tenant_id(
+        tenant_id or os.environ.get("KF_DEFAULT_TENANT") or default_tenant or None
+    )
     if not effective_tenant:
         raise ValueError(
             "tenant_id is required; specify tenant_id parameter or configure KF_DEFAULT_TENANT"
@@ -64,7 +66,7 @@ def _require_tenant(tenant_id: str | None) -> str:
     return effective_tenant
 
 
-def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
+def create_mcp_server(tools: KnowledgeFabricMCPTools, default_tenant: str | None = None) -> Any:
     """Create MCP server with retrieval tool registration."""
     try:
         from mcp.server.fastmcp import FastMCP
@@ -94,7 +96,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         Use source_type as a filter in retrieve_evidence to scope retrieval.
         Scoped to tenant_id when provided.
         """
-        effective_tenant = _require_tenant(tenant_id)
+        effective_tenant = _require_tenant(tenant_id, default_tenant=default_tenant)
         return tools.list_sources(tenant_id=effective_tenant)
 
     @server.tool(name="retrieve_evidence")
@@ -105,6 +107,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         trace_id: str | None = None,
         tenant_id: str | None = None,
         mode: str = "hybrid",
+        format: str = "json",
     ) -> dict[str, object]:
         """Execute evidence retrieval across indexed content.
 
@@ -113,11 +116,13 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         - top_k: Maximum number of ranked evidence chunks to return (default: 10).
         - source_type: Optional filter by source kind (e.g., 'markdown', 'confluence').
         - trace_id: Optional client-supplied correlation ID for audit tracing.
-        - tenant_id: Tenant namespace identifier (scopes search to tenant data).
+        - tenant_id: Tenant namespace identifier (scopes search to tenant data; defaults to configured default tenant).
         - mode: Retrieval strategy: 'hybrid' (lexical + vector RRF), 'lexical' (full-text only),
           or 'vector' (semantic embeddings only).
+        - format: Output presentation format: 'json' (standard payload), 'compact' (deduplicated token-efficient JSON),
+          or 'markdown' (ready-to-cite markdown text). Default is 'json'.
         """
-        effective_tenant = _require_tenant(tenant_id)
+        effective_tenant = _require_tenant(tenant_id, default_tenant=default_tenant)
         return tools.retrieve_evidence(
             query_text=query_text,
             top_k=top_k,
@@ -125,6 +130,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
             trace_id=trace_id,
             tenant_id=effective_tenant,
             mode=mode,
+            format=format,
         )
 
     @server.tool(name="get_document")
@@ -133,7 +139,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         source_uri: str | None = None,
         tenant_id: str | None = None,
     ) -> dict[str, object] | None:
-        effective_tenant = _require_tenant(tenant_id)
+        effective_tenant = _require_tenant(tenant_id, default_tenant=default_tenant)
         return tools.get_document(
             document_id=document_id,
             source_uri=source_uri,
@@ -153,7 +159,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         Explains candidate counts, per-leg latencies, fusion scores, and degradation
         status without persisting audit logs.
         """
-        effective_tenant = _require_tenant(tenant_id)
+        effective_tenant = _require_tenant(tenant_id, default_tenant=default_tenant)
         return tools.explain_retrieval(
             query_text=query_text,
             top_k=top_k,
@@ -170,7 +176,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
 
         Scoped to tenant_id when provided.
         """
-        effective_tenant = _require_tenant(tenant_id)
+        effective_tenant = _require_tenant(tenant_id, default_tenant=default_tenant)
         return tools.get_index_status(tenant_id=effective_tenant)
 
     @server.tool(name="get_evidence")
@@ -179,7 +185,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         tenant_id: str | None = None,
     ) -> dict[str, object] | None:
         """Fetch a specific evidence chunk by its integer chunk ID, scoped to tenant."""
-        effective_tenant = _require_tenant(tenant_id)
+        effective_tenant = _require_tenant(tenant_id, default_tenant=default_tenant)
         return tools.get_evidence(chunk_id=chunk_id, tenant_id=effective_tenant)
 
     @server.tool(name="check_consistency")
@@ -187,7 +193,7 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
         tenant_id: str | None = None,
     ) -> dict[str, object]:
         """Run database consistency audits (detecting orphaned chunks, empty documents, null tenants)."""
-        effective_tenant = _require_tenant(tenant_id)
+        effective_tenant = _require_tenant(tenant_id, default_tenant=default_tenant)
         return tools.check_consistency(tenant_id=effective_tenant)
 
     return server
@@ -195,9 +201,10 @@ def create_mcp_server(tools: KnowledgeFabricMCPTools) -> Any:
 
 def run_mcp_server(settings_path: str = "config/settings.yaml") -> None:
     """Run the MCP server using stdio transport."""
+    os.environ.setdefault("KF_DEFAULT_TENANT", "default")
     settings = load_settings(settings_path)
     tools = build_tools_from_settings(settings)
-    server = create_mcp_server(tools)
+    server = create_mcp_server(tools, default_tenant="default")
     server.run()
 
 

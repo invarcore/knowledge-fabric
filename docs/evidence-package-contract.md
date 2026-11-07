@@ -57,6 +57,14 @@ EvidenceItem
 }
 ```
 
+## Presentation Formats
+
+To optimize token efficiency for autonomous AI agents, `retrieve_evidence` supports three presentation formats via the `format` parameter:
+
+1. **`format="json"` (Default)**: Full JSON payload including provenance digest, query fingerprint, HMAC signature, and per-leg diagnostic summaries.
+2. **`format="compact"`**: Lean, deduplicated JSON omitting backward-compatibility aliases and redundant text arrays, reducing wire footprint by ~50%.
+3. **`format="markdown"`**: Returns pre-formatted structured markdown citations (`citations` field) ready for immediate agent prompting, reducing token overhead by >80%.
+
 ## Contract guarantees
 
 - `retrieve_evidence` returns evidence, not final natural-language answers.

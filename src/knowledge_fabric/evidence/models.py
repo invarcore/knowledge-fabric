@@ -32,13 +32,19 @@ def compute_chunk_hash(document_uri: str, snippet: str) -> str:
 def compute_package_digest(items: list[EvidenceItem]) -> str:
     """Compute composite SHA-256 digest over ordered chunk provenance hashes.
 
-    Formula: SHA-256(hash_1 + ":" + hash_2 + ":" + ... + hash_N)
-    Returns empty string if items list is empty.
+    Uses length-prefixed encoding per RFC 8785 to eliminate delimiter collision attacks.
+    Each hash is prefixed with its byte length as a 4-byte big-endian unsigned integer.
     """
     if not items:
         return ""
-    combined = ":".join(item.provenance_hash for item in items).encode("utf-8")
-    return hashlib.sha256(combined).hexdigest()
+    import struct
+
+    parts: list[bytes] = []
+    for item in items:
+        h_bytes = item.provenance_hash.encode("utf-8")
+        parts.append(struct.pack(">I", len(h_bytes)))
+        parts.append(h_bytes)
+    return hashlib.sha256(b"".join(parts)).hexdigest()
 
 
 def compute_package_signature(
@@ -134,6 +140,7 @@ class EvidencePackage:
                     "chunk_id": str(item.chunk_id),
                     "content": item.snippet,
                     "source_uri": item.document_uri,
+                    "document_uri": item.document_uri,  # backward compat alias
                     "provenance_hash": item.provenance_hash,
                     "score": item.score,
                 }

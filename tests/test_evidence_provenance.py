@@ -152,6 +152,7 @@ def test_evidence_package_to_dict_emits_task1_canonical_schema():
     chunk = d["chunks"][0]
     assert chunk["chunk_id"] == "1"
     assert chunk["source_uri"] == "doc.md"
+    assert chunk["document_uri"] == "doc.md"
     assert chunk["content"] == "evidence text"
     assert chunk["provenance_hash"] == compute_chunk_hash("doc.md", "evidence text")
     assert chunk["score"] == 0.5

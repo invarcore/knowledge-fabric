@@ -55,6 +55,9 @@ class KnowledgeRepository:
                 # Fallback for unmigrated legacy schemas where UNIQUE(tenant_id, source_uri) index is not yet present
                 err_msg = str(exc).lower()
                 if "tenant_id" in err_msg or "42p10" in err_msg or "unique" in err_msg or "conflict" in err_msg:
+                    if hasattr(connection, "rollback"):
+                        connection.rollback()
+                    cursor.execute("SELECT set_config('app.tenant_id', %s, true)", [effective_tenant])
                     cursor.execute(
                         """
                         INSERT INTO documents (source_uri, source_type, title, metadata, content_text, tenant_id)

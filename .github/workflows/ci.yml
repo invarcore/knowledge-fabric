@@ -69,7 +69,8 @@ jobs:
             -f db/schema/003_multi_tenancy.sql \
             -f db/schema/004_dimension_guard.sql \
             -f db/schema/005_partitioning_and_hnsw.sql \
-            -f db/schema/006_application_role.sql
+            -f db/schema/006_application_role.sql \
+            -f db/schema/007_tenant_scoped_uri.sql
 
       - name: Lint (ruff)
         run: uv run ruff check .

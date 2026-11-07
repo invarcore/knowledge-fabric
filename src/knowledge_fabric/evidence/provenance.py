@@ -75,3 +75,4 @@ def create_provenance_signature(
     return hmac.new(
         secret_key.encode("utf-8"), canonical_bytes, hashlib.sha256
     ).hexdigest()
+

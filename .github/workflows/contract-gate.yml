@@ -22,7 +22,7 @@ jobs:
           path: sibling
 
       - name: Install Astral uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
 

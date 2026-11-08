@@ -126,3 +126,67 @@ def test_scrub_failure_with_failing_close() -> None:
     c = pool.acquire()
     pool.release(c)
     assert len(pool._idle_pool) == 0
+
+
+def test_max_active_exhaustion_and_timeout() -> None:
+    pool = RLSSafeConnectionPool(raw_connect_fn=FakeConn, max_idle=2, max_active=2)
+    c1 = pool.acquire()
+    c2 = pool.acquire()
+    assert pool.active_checkouts == 2
+
+    # Third acquire times out
+    with pytest.raises(TimeoutError, match="Connection pool exhausted: 2 active"):
+        pool.acquire(timeout_s=0.01)
+
+    # Releasing c1 frees a slot
+    pool.release(c1)
+    assert pool.active_checkouts == 1
+    c3 = pool.acquire(timeout_s=0.1)
+    assert pool.active_checkouts == 2
+    pool.release(c2)
+    pool.release(c3)
+    assert pool.active_checkouts == 0
+
+
+def test_connection_context_manager() -> None:
+    pool = RLSSafeConnectionPool(raw_connect_fn=FakeConn, max_idle=2, max_active=2)
+    with pool.connection() as conn:
+        assert pool.active_checkouts == 1
+        assert conn.active_tenant == "tenant-secret-a"
+    assert pool.active_checkouts == 0
+
+    # Exception inside context manager still releases
+    with pytest.raises(ValueError, match="simulated failure"):
+        with pool.connection() as conn:
+            raise ValueError("simulated failure")
+    assert pool.active_checkouts == 0
+
+
+def test_untracked_and_none_release() -> None:
+    pool = RLSSafeConnectionPool(raw_connect_fn=FakeConn, max_idle=2, max_active=2)
+    pool.release(None)
+    untracked = FakeConn("off")
+    pool.release(untracked)
+    assert pool.active_checkouts == 0
+
+
+def test_release_closed_checked_out_connection() -> None:
+    pool = RLSSafeConnectionPool(raw_connect_fn=FakeConn, max_idle=2, max_active=2)
+    conn = pool.acquire()
+    assert pool.active_checkouts == 1
+    # Caller or network closes connection while checked out
+    conn.closed = True
+    pool.release(conn)
+    assert pool.active_checkouts == 0
+    assert len(pool._idle_pool) == 0
+
+
+def test_acquire_creation_failure_releases_semaphore() -> None:
+    pool = RLSSafeConnectionPool(
+        raw_connect_fn=lambda: FakeConn("on"),  # Fails superuser check
+        max_active=1,
+    )
+    with pytest.raises(SuperuserViolationError):
+        pool.acquire()
+    # Ensure semaphore was released and not permanently locked
+    assert pool.active_checkouts == 0

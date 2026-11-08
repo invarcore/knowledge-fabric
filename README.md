@@ -15,7 +15,7 @@
   <a href="https://github.com/invarcore/knowledge-fabric/actions"><img src="https://github.com/invarcore/knowledge-fabric/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
   <a href="https://invarcore.com"><img src="https://img.shields.io/badge/Website-invarcore.com-0284C7?logo=googlechrome&logoColor=white" alt="Invarcore Website"></a>
   <a href="https://github.com/invarcore/knowledge-fabric/actions"><img src="https://img.shields.io/badge/Coverage-94%25-brightgreen.svg" alt="Coverage: 94%"></a>
-  <a href="https://github.com/invarcore/knowledge-fabric/releases"><img src="https://img.shields.io/badge/Release-v0.1.1-blue.svg" alt="Release"></a>
+  <a href="https://github.com/invarcore/knowledge-fabric/releases"><img src="https://img.shields.io/badge/Release-v0.1.4-blue.svg" alt="Release"></a>
   <a href="https://codespaces.new/invarcore/knowledge-fabric"><img src="https://github.com/codespaces/badge.svg" alt="Open in GitHub Codespaces"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Native%20Server-purple.svg" alt="MCP Native"></a>
@@ -43,7 +43,7 @@ Give Claude Desktop or Cursor private, local long-term memory over your enterpri
         "run", "-i", "--rm",
         "-e", "DATABASE_URL=postgresql://knowledge_fabric:knowledge_fabric@host.docker.internal:5432/knowledge_fabric",
         "-e", "KF_DEFAULT_TENANT=default",
-        "ghcr.io/invarcore/knowledge-fabric:0.1.3",
+        "ghcr.io/invarcore/knowledge-fabric:0.1.4",
         "knowledge-fabric-mcp"
       ]
     }
@@ -218,6 +218,33 @@ PostgreSQL kernel rejects any access that does not set session variable `app.ten
 SELECT set_config('app.tenant_id', 'healthcare-corp-a', true);
 ```
 Even if application code contains a bug or omission, cross-tenant data leakage is physically impossible.
+
+### Mode 3: RLS-Safe Connection Pooling (P1-3)
+Standard connection pools (e.g. naive pooling) are dangerous in multi-tenant RLS environments: if an application checks in a connection with an active `app.tenant_id` session setting or uncommitted transaction, subsequent queries from a different tenant can bleed or inherit privileges. Furthermore, re-querying `SHOW is_superuser` on every checkout imposes a severe 3x TCP handshake latency penalty.
+
+Knowledge Fabric's `RLSSafeConnectionPool` eliminates both issues:
+- **Single-Pass Superuser Caching**: Queries `SHOW is_superuser` exactly once upon physical connection startup, caching the boolean across checkouts.
+- **Fail-Closed Tenant Context Scrubbing**: On every connection return, executes `conn.rollback()` and `SELECT set_config('app.tenant_id', '', false)` to guarantee zero tenant context residue.
+- **Strict Concurrency Bounds**: Enforces `max_active = 16` socket bound to prevent database socket starvation under high agent load.
+- **Checked-Out Connection Tracking**: Actively monitors in-flight sockets and safely handles client-closed connections.
+
+```python
+from knowledge_fabric.database.connection_pool import RLSSafeConnectionPool
+
+# Initialize pool with max active socket limits
+pool = RLSSafeConnectionPool(
+    dsn="postgresql://knowledge_fabric@localhost:5432/knowledge_fabric",
+    min_size=2,
+    max_size=16,
+)
+
+# Use safe context manager - automatically sets tenant_id and cleans up on exit
+with pool.connection(tenant_id="healthcare-corp-a") as conn:
+    with conn.cursor() as cur:
+        cur.execute("SELECT chunk_id, content FROM chunks WHERE source_type = 'ehr'")
+        results = cur.fetchall()
+# Upon block exit, conn is rolled back, app.tenant_id is cleared, and connection returns to pool
+```
 
 ---
 

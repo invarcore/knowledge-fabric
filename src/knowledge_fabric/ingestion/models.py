@@ -20,6 +20,11 @@ class SourceFormat(StrEnum):
     PDF = "pdf"
     DOCX = "docx"
     PPTX = "pptx"
+    PYTHON = "python"
+    TYPESCRIPT = "typescript"
+    JAVASCRIPT = "javascript"
+    GO = "go"
+    RUST = "rust"
 
 
 class IngestionStatus(StrEnum):

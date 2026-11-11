@@ -187,6 +187,7 @@ Configure your preferred embedding and reranking providers with environment vari
 | Provider | Configuration | Characteristics |
 | :--- | :--- | :--- |
 | **Passthrough** *(Default)* | `RERANKER=passthrough` | Fast zero-latency RRF ranking without neural reranking. |
+| **CASE-Guard** | `RERANKER=case_guard` | Safeguard-boosted & insecure-exemplar quarantined code reranker (AST + polyglot security checks). |
 | **Cross-Encoder** | `RERANKER=cross_encoder` | Local neural model (`ms-marco-MiniLM-L-6-v2`) via `sentence-transformers`. Free & private. |
 | **Cohere** | `RERANKER=cohere`<br>`COHERE_API_KEY=...` | Cloud reranking via Cohere Rerank API. |
 
@@ -245,6 +246,16 @@ with pool.connection(tenant_id="healthcare-corp-a") as conn:
         results = cur.fetchall()
 # Upon block exit, conn is rolled back, app.tenant_id is cleared, and connection returns to pool
 ```
+
+---
+
+## 🛡️ CASE-Bench Secure Code Chunking & Reranking
+
+To prevent code-generation RAG pipelines from retrieving insecure exemplars or missing repository security safeguards (`CASE-Bench`), Knowledge Fabric annotates code chunks at ingestion/chunking time and filters retrieval candidates at rerank time:
+
+- **Python AST & Polyglot Support**: `DocumentIngestionService` and `DocumentChunkingService` classify Python (via AST slicing) as well as JavaScript, TypeScript, Go, and Rust (`SourceFormat.JAVASCRIPT`, `TYPESCRIPT`, `GO`, `RUST`), populating `is_security_safeguard` and `has_insecure_exemplar` chunk metadata.
+- **Static Security Signal Classifier (`classify_code_chunk_security`)**: Recognizes parameterized auth/validation decorators (`@require_auth(...)`, `@login_required`, etc.) and flags unsafe patterns including command execution, SQL string interpolation, `yaml.unsafe_load_all`, `marshal.load`, weak hashes (`hashlib.md5`/`sha1` unless `usedforsecurity=False`), and polyglot sinks (`new Function`, `innerHTML =`, `child_process.execSync`).
+- **Fail-Safe Reranking (`RERANKER=case_guard`)**: `CaseGuardReranker` promotes genuine safeguard chunks while quarantining insecure exemplars (`quarantine_insecure=True` by default).
 
 ---
 

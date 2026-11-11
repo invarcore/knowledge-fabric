@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-11-12
+
+### Added
+- **RLS-Safe Connection Pooling (`RLSSafeConnectionPool`)**: Reuses physical PostgreSQL connections safely across tenants with startup `is_superuser` caching, bounded `max_active` sockets, and `conn.rollback()` + `SELECT set_config('app.tenant_id', '', false)` scrubbing on every return.
+- **CASE-Bench Code Security Classifier & Reranker (`chunking/case_guard.py`, `CaseGuardReranker`)**: AST-based Python and polyglot security classification (`is_security_safeguard`, `has_insecure_exemplar`), safeguard RRF boosting, insecure-exemplar quarantine, parameterized auth decorator inspection, `hashlib` `usedforsecurity=False` handling, and `DocumentIngestionService` / `DocumentChunkingService` support for TypeScript, JavaScript, Go, and Rust files.
+
 ## [0.1.3] - 2026-11-07
 
 ### Added

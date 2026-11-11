@@ -5,15 +5,41 @@
 
 from __future__ import annotations
 
+import ast
 import re
 from dataclasses import dataclass
+from typing import Any
 
+from knowledge_fabric.chunking.case_guard import classify_code_chunk_security
 from knowledge_fabric.ingestion.models import Chunk, Document, SourceFormat
 
 _HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 _CODE_BLOCK_PATTERN = re.compile(r"(```[\s\S]*?```)")
 _TABLE_PATTERN = re.compile(r"((?:^\|.*?\|\s*$\n?)+)", re.MULTILINE)
 _PAGE_MARKER_PATTERN = re.compile(r"(?:\f|---\s*Page\s+(\d+)\s*---)", re.IGNORECASE)
+_CODE_FORMATS = frozenset(
+    {
+        SourceFormat.PYTHON,
+        SourceFormat.JAVASCRIPT,
+        SourceFormat.TYPESCRIPT,
+        SourceFormat.GO,
+        SourceFormat.RUST,
+    }
+)
+_CODE_URI_EXTENSIONS = (".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs")
+
+
+def _security_metadata_fields(chunk_text: str, symbol_name: str = "") -> dict[str, Any]:
+    """Build CASE-Bench security classification metadata for a code chunk."""
+    is_safe, is_insec, safe_sigs, insec_sigs = classify_code_chunk_security(
+        chunk_text, symbol_name=symbol_name
+    )
+    return {
+        "is_security_safeguard": is_safe,
+        "has_insecure_exemplar": is_insec,
+        "safeguard_signals": list(safe_sigs),
+        "insecure_signals": list(insec_sigs),
+    }
 
 
 @dataclass(slots=True)
@@ -68,7 +94,25 @@ class DocumentChunkingService:
             if page_chunks:
                 return page_chunks
 
-        return self._chunk_fallback(document)
+        if document.source_format is SourceFormat.PYTHON or document.source_uri.endswith(".py"):
+            ast_chunks = self._chunk_python_ast(document)
+            if ast_chunks:
+                return ast_chunks
+
+        fallback_chunks = self._chunk_fallback(document)
+        if self._is_code_document(document):
+            return self._annotate_code_chunks(fallback_chunks)
+        return fallback_chunks
+
+    def _is_code_document(self, document: Document) -> bool:
+        if document.source_format in _CODE_FORMATS:
+            return True
+        return document.source_uri.lower().endswith(_CODE_URI_EXTENSIONS)
+
+    def _annotate_code_chunks(self, chunks: list[Chunk]) -> list[Chunk]:
+        for chunk in chunks:
+            chunk.metadata.update(_security_metadata_fields(chunk.chunk_text))
+        return chunks
 
     def _chunk_markdown_structure(self, document: Document) -> list[Chunk]:
         text = document.content_text.strip()
@@ -130,7 +174,11 @@ class DocumentChunkingService:
                 else:
                     # Emit current accumulated chunk
                     offset_start = text.find(accumulated_text, accumulated_start)
-                    offset_end = offset_start + len(accumulated_text) if offset_start >= 0 else accumulated_start + len(accumulated_text)
+                    offset_end = (
+                        offset_start + len(accumulated_text)
+                        if offset_start >= 0
+                        else accumulated_start + len(accumulated_text)
+                    )
                     chunks.append(
                         Chunk(
                             document_uri=document.source_uri,
@@ -156,7 +204,11 @@ class DocumentChunkingService:
 
             if accumulated_text:
                 offset_start = text.find(accumulated_text, accumulated_start)
-                offset_end = offset_start + len(accumulated_text) if offset_start >= 0 else accumulated_start + len(accumulated_text)
+                offset_end = (
+                    offset_start + len(accumulated_text)
+                    if offset_start >= 0
+                    else accumulated_start + len(accumulated_text)
+                )
                 chunks.append(
                     Chunk(
                         document_uri=document.source_uri,
@@ -301,4 +353,58 @@ class DocumentChunkingService:
             if end == len(text):
                 break
             start = max(0, end - self._config.overlap_chars)
+        return chunks
+
+    def _chunk_python_ast(self, document: Document) -> list[Chunk]:
+        """Slice Python source along top-level class/function AST boundaries with CASE-Bench metadata."""
+        source = document.content_text
+        if not source.strip():
+            return []
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+
+        defs = [
+            node
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        ]
+        if not defs:
+            return []
+
+        lines = source.splitlines(keepends=True)
+        line_offsets: list[int] = [0]
+        for ln in lines:
+            line_offsets.append(line_offsets[-1] + len(ln))
+
+        chunks: list[Chunk] = []
+        for idx, node in enumerate(defs):
+            start_lineno = min(
+                [node.lineno] + [dec.lineno for dec in getattr(node, "decorator_list", [])]
+            )
+            end_lineno = node.end_lineno or node.lineno
+            start_off = line_offsets[max(0, start_lineno - 1)]
+            end_off = line_offsets[min(len(lines), end_lineno)]
+            chunk_text = source[start_off:end_off].strip()
+            if not chunk_text:
+                continue
+
+            chunks.append(
+                Chunk(
+                    document_uri=document.source_uri,
+                    chunk_index=idx,
+                    chunk_text=chunk_text,
+                    heading_path=node.name,
+                    start_offset=start_off,
+                    end_offset=end_off,
+                    metadata={
+                        "strategy": "python_ast",
+                        "symbol_name": node.name,
+                        **_security_metadata_fields(chunk_text, symbol_name=node.name),
+                        "start_offset": start_off,
+                        "end_offset": end_off,
+                    },
+                )
+            )
         return chunks

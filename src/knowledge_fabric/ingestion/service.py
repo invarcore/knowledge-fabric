@@ -18,6 +18,13 @@ _TEXT_EXTENSIONS: dict[str, SourceFormat] = {
     ".txt": SourceFormat.TXT,
     ".html": SourceFormat.HTML,
     ".htm": SourceFormat.HTML,
+    ".py": SourceFormat.PYTHON,
+    ".ts": SourceFormat.TYPESCRIPT,
+    ".tsx": SourceFormat.TYPESCRIPT,
+    ".js": SourceFormat.JAVASCRIPT,
+    ".jsx": SourceFormat.JAVASCRIPT,
+    ".go": SourceFormat.GO,
+    ".rs": SourceFormat.RUST,
 }
 
 _BINARY_EXTENSIONS: dict[str, SourceFormat] = {
@@ -68,7 +75,9 @@ class DocumentIngestionService:
             if source_format is SourceFormat.MARKDOWN:
                 content_text = raw_text
                 # Extract markdown headings
-                extracted_headings = [m.group(2).strip() for m in _MD_HEADING_PATTERN.finditer(raw_text)]
+                extracted_headings = [
+                    m.group(2).strip() for m in _MD_HEADING_PATTERN.finditer(raw_text)
+                ]
                 if extracted_headings:
                     headings = extracted_headings
             elif source_format is SourceFormat.HTML:
@@ -78,7 +87,9 @@ class DocumentIngestionService:
                     extracted_title = unescape(title_match.group(1)).strip()
                     if extracted_title:
                         title = extracted_title
-                headings = [unescape(m.group(1)).strip() for m in _HTML_HEADING_PATTERN.finditer(raw_text)]
+                headings = [
+                    unescape(m.group(1)).strip() for m in _HTML_HEADING_PATTERN.finditer(raw_text)
+                ]
                 content_text = _strip_html(raw_text)
             else:
                 content_text = raw_text

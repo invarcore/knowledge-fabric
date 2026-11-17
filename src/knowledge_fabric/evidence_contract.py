@@ -64,6 +64,22 @@ def length_prefixed_utf8(value: str) -> str:
     return f"{len(utf8_bytes)}:{norm}"
 
 
+def _get_item_field(item: Any, *keys: str) -> Any:
+    """Retrieve field from dictionary mapping or object attribute."""
+    if isinstance(item, Mapping):
+        for k in keys:
+            v = item.get(k)
+            if v is not None:
+                return v
+        return None
+    for k in keys:
+        if hasattr(item, k):
+            v = getattr(item, k)
+            if v is not None:
+                return v
+    return None
+
+
 def compute_chunk_hash(source_uri: str, content: str) -> str:
     """Compute deterministic SHA-256 chunk hash using RFC 8785 canonical JSON array."""
     canonical_payload = json.dumps(
@@ -100,9 +116,9 @@ def compute_canonical_contract_bytes(
         norm_tenant = unicodedata.normalize("NFC", str(tid).strip())
         canonical_items = []
         for c in raw_chunks:
-            cid = str(c.get("chunk_id", ""))
-            chash = str(c.get("content_hash", "") or c.get("provenance_hash", ""))
-            suri = str(c.get("source_uri", "") or c.get("document_uri", ""))
+            cid = str(_get_item_field(c, "chunk_id") or "")
+            chash = str(_get_item_field(c, "content_hash", "provenance_hash") or "")
+            suri = str(_get_item_field(c, "source_uri", "document_uri") or "")
             canonical_items.append({
                 "chunk_id": length_prefixed_utf8(cid),
                 "content_hash": length_prefixed_utf8(chash),
@@ -188,17 +204,16 @@ def verify_evidence_contract_rfc8785(
     items = payload.get("items") or payload.get("chunks")
     if items and isinstance(items, Sequence):
         for item in items:
-            if isinstance(item, Mapping):
-                snippet = item.get("snippet") or item.get("content")
-                uri = item.get("document_uri") or item.get("source_uri")
-                reported_hash = item.get("provenance_hash") or item.get("content_hash")
-                if snippet is not None and uri is not None and reported_hash is not None:
-                    expected_hash = compute_chunk_hash(str(uri), str(snippet))
-                    if not hmac.compare_digest(str(reported_hash).lower(), expected_hash.lower()):
-                        cid = item.get("chunk_id", "unknown")
-                        raise EvidenceContractError(
-                            f"Provenance hash mismatch on chunk {cid}: expected {expected_hash[:12]}, got {reported_hash[:12]}."
-                        )
+            snippet = _get_item_field(item, "snippet", "content")
+            uri = _get_item_field(item, "document_uri", "source_uri")
+            reported_hash = _get_item_field(item, "provenance_hash", "content_hash")
+            if snippet is not None and uri is not None and reported_hash is not None:
+                expected_hash = compute_chunk_hash(str(uri), str(snippet))
+                if not hmac.compare_digest(str(reported_hash).lower(), expected_hash.lower()):
+                    cid = _get_item_field(item, "chunk_id") or "unknown"
+                    raise EvidenceContractError(
+                        f"Provenance hash mismatch on chunk {cid}: expected {expected_hash[:12]}, got {reported_hash[:12]}."
+                    )
 
     expected_sig = sign_evidence_contract_rfc8785(
         payload=payload,

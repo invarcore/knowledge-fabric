@@ -157,3 +157,31 @@ def test_evidence_contract_jcs_and_digest_edge_cases() -> None:
     # Empty secret key in signing
     with pytest.raises(EvidenceContractError, match="Signing key is mandatory"):
         sign_evidence_contract_rfc8785(naive_ts_payload, "")
+
+
+def test_evidence_contract_dataclass_chunks() -> None:
+    from dataclasses import dataclass
+
+    @dataclass
+    class MockChunk:
+        chunk_id: str
+        source_uri: str
+        content: str
+        content_hash: str
+
+    uri = "docs/dataclass_spec.md"
+    content = "Dataclass chunk representation"
+    chash = compute_chunk_hash(uri, content)
+    chunk = MockChunk(
+        chunk_id="chunk-dc-1",
+        source_uri=uri,
+        content=content,
+        content_hash=chash,
+    )
+    payload = {
+        "tenant_id": "tenant-dataclass",
+        "chunks": [chunk],
+    }
+    sig = sign_evidence_contract_rfc8785(payload, SECRET_KEY)
+    assert verify_evidence_contract_rfc8785(payload, sig, SECRET_KEY) is True
+

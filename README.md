@@ -384,6 +384,34 @@ python examples/04-end-to-end-with-intent/run.py
 
 ---
 
+## 🔒 Standalone RFC 8785 Evidence Contract Verifier
+
+Knowledge Fabric includes a zero-dependency, standard-library-only cryptographic verifier in `knowledge_fabric.evidence_contract`:
+
+```python
+from knowledge_fabric.evidence_contract import (
+    sign_evidence_contract_rfc8785,
+    verify_evidence_contract_rfc8785,
+)
+
+# Sign an evidence payload using RFC 8785 Canonical JSON (JCS) and HMAC-SHA256
+signature = sign_evidence_contract_rfc8785(payload, secret_key="corp-hmac-key")
+
+# Verify contract signature, temporal freshness, and chunk-level SHA-256 provenance fail-closed
+is_valid = verify_evidence_contract_rfc8785(
+    payload,
+    signature=signature,
+    secret_key="corp-hmac-key",
+    max_age_seconds=300.0,
+)
+```
+
+- **RFC 8785 JCS Canonicalization**: Deterministic UTF-8 JSON sorting with zero whitespace variance, NFC unicode normalization, and IEEE 754 float guarantees.
+- **Fail-Closed Verification**: Constant-time signature comparison (`hmac.compare_digest`), TTL-based freshness validation, and chunk content hash verification.
+- **Polymorphic Chunk Support**: Transparently validates dictionary payloads as well as dataclass or Pydantic chunk models.
+
+---
+
 ## 🧪 Testing & Verification
 
 Knowledge Fabric enforces rigorous test coverage ($\ge 90\%$), strict multi-tenant isolation, and a zero-live-HTTP CI architecture:

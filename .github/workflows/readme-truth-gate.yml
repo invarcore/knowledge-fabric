@@ -1,4 +1,4 @@
-name: README Truth Gate
+﻿name: README Truth Gate
 
 on:
   push:
@@ -25,6 +25,6 @@ jobs:
       - name: Clean Venv Source Install & Smoke Check (TRUTH-02)
         run: |
           uv venv /tmp/smoke-venv
-          uv pip --python /tmp/smoke-venv install .
+          uv pip install --python /tmp/smoke-venv .
           /tmp/smoke-venv/bin/python -c "import knowledge_fabric; print('knowledge_fabric import ok')"
           /tmp/smoke-venv/bin/knowledge-fabric --help || true

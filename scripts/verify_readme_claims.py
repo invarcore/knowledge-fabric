@@ -13,13 +13,14 @@ Checks:
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
+import json
 import re
 import shlex
 import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 BANNED_RULES = [
     (
@@ -35,8 +36,15 @@ BANNED_RULES = [
         "Inaccurate claim: 'tamper-proof SHA-256'. An unkeyed hash is not tamper-proof without HMAC or Ed25519 signature.",
     ),
     (
-        re.compile(r"\bnon-repudiable hmac\b", re.IGNORECASE),
-        "Inaccurate claim: 'non-repudiable HMAC'. Symmetric HMAC does not provide non-repudiation.",
+        re.compile(
+            r"(?:non[- ]?repudiabl[ey]\s+(?:[-a-z0-9]+\s+){0,2}hmac|hmac(?:[- ]?sha\d+)?(?:\s+(?:for|provides|ensures|guarantees|enables|gives))?\s+non[- ]?repudiat|non[- ]?repudiat[a-z]*\s*(?::|via|using|with|through|by)\s*(?:[^.\n,;]{0,40}\b)?hmac)",
+            re.IGNORECASE,
+        ),
+        "Inaccurate claim: Symmetric HMAC provides keyed integrity/authenticity, not non-repudiation (use Ed25519).",
+    ),
+    (
+        re.compile(r"\bclaude[- ]3[- .][57]\b", re.IGNORECASE),
+        "Stale retired model citation (Claude 3.5 / 3.7). Update to current supported models.",
     ),
     (
         re.compile(r"\brfc\s*8785\b[^\.\n]*\barray\s+sort", re.IGNORECASE),
@@ -50,9 +58,11 @@ TEST_COUNT_PATTERN = re.compile(
 )
 
 INSTALL_LINE_PATTERN = re.compile(
-    r"^\s*(?:pip|uv pip)\s+install\s+(.+)$|^\s*uv\s+add\s+(.+)$",
+    r"^\s*(?:pip|uv pip)\s+install\s+(.+)$|^\s*uv\s+(?:add|tool\s+install)\s+(.+)$",
     re.MULTILINE,
 )
+
+PYPI_BADGE_PATTERN = re.compile(r"https?://pypi\.org/project/([a-zA-Z0-9_.-]+)")
 
 
 def is_local_or_git_install(arg: str) -> bool:
@@ -67,7 +77,7 @@ def is_local_or_git_install(arg: str) -> bool:
 def extract_package_names_from_line(line_args: str) -> list[str]:
     try:
         tokens = shlex.split(line_args)
-    except Exception:
+    except ValueError:
         tokens = line_args.split()
 
     packages = []
@@ -92,7 +102,8 @@ def extract_package_names_from_line(line_args: str) -> list[str]:
     return packages
 
 
-def check_pypi_exists(pkg: str, retries: int = 3) -> bool:
+def check_pypi_exists(pkg: str, retries: int = 3) -> tuple[bool, bool]:
+    """Return (exists, owned_by_invarcore)."""
     url = f"https://pypi.org/pypi/{pkg}/json"
     headers = {"User-Agent": "Invarcore-Truth-Gate/1.0"}
     for attempt in range(retries):
@@ -100,20 +111,23 @@ def check_pypi_exists(pkg: str, retries: int = 3) -> bool:
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=5) as resp:
                 if resp.status == 200:
-                    return True
+                    data = json.loads(resp.read().decode("utf-8"))
+                    info = data.get("info", {})
+                    blob = json.dumps(info).lower()
+                    return True, ("invarcore" in blob)
         except urllib.error.HTTPError as e:
             if e.code == 404:
-                return False
+                return False, False
             if attempt < retries - 1 and e.code >= 500:
                 time.sleep(1.0 * (attempt + 1))
                 continue
-            return False
-        except Exception:
+            return False, False
+        except (urllib.error.URLError, TimeoutError, OSError, UnicodeDecodeError, json.JSONDecodeError):
             if attempt < retries - 1:
                 time.sleep(1.0 * (attempt + 1))
                 continue
-            return False
-    return False
+            return False, False
+    return False, False
 
 
 def verify_readme(readme_path: Path, offline: bool = False) -> list[str]:
@@ -140,7 +154,7 @@ def verify_readme(readme_path: Path, offline: bool = False) -> list[str]:
                 f"Use a live GitHub Actions CI status badge instead.\n    Offending text: {line.strip()}"
             )
 
-    # TRUTH-01: Public registry existence
+    # TRUTH-01: Public registry existence & ownership check
     if not offline:
         install_candidates: set[str] = set()
 
@@ -150,12 +164,20 @@ def verify_readme(readme_path: Path, offline: bool = False) -> list[str]:
                 for pkg in extract_package_names_from_line(args_str):
                     install_candidates.add(pkg)
 
+        for match in PYPI_BADGE_PATTERN.finditer(content):
+            install_candidates.add(match.group(1).strip("/"))
+
         for pkg in sorted(install_candidates):
-            exists = check_pypi_exists(pkg)
+            exists, owned = check_pypi_exists(pkg)
             if not exists:
                 errors.append(
                     f"TRUTH-01: Advertised package '{pkg}' does not exist on PyPI. "
                     f"Replace with 'pip install git+https://github.com/invarcore/...' until released."
+                )
+            elif not owned:
+                errors.append(
+                    f"TRUTH-01: PyPI package '{pkg}' exists but metadata does not reference 'invarcore' "
+                    f"(potential third-party namespace collision)."
                 )
 
     return errors

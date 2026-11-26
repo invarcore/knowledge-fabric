@@ -55,7 +55,7 @@ def test_vector4_safeguard_boosted_to_rank_one_and_vector5_insecure_quarantined(
         },
     ]
 
-    ranked = rerank_chunks_for_case_bench(chunks)
+    ranked = rerank_chunks_for_case_bench(chunks, award_safeguard_boost=True)
     assert len(ranked) == 2
     assert [c.chunk_id for c in ranked] == ["chunk-safeguard", "chunk-neutral"]
 
@@ -69,7 +69,12 @@ def test_vector4_safeguard_boosted_to_rank_one_and_vector5_insecure_quarantined(
     assert "safe_call:hmac.compare_digest" in top.safeguard_signals
 
     # When quarantine is disabled, the insecure exemplar is retained but strongly penalized
-    penalized = rerank_chunks_for_case_bench(chunks, quarantine_insecure=False)
+    penalized = rerank_chunks_for_case_bench(
+        chunks,
+        quarantine_insecure=False,
+        award_safeguard_boost=True,
+        insecure_penalty=0.15,
+    )
     by_id = {c.chunk_id: c for c in penalized}
     assert by_id["chunk-insecure-sql"].has_insecure_exemplar is True
     assert by_id["chunk-insecure-sql"].adjusted_score == round(0.92 * 0.15, 6)
